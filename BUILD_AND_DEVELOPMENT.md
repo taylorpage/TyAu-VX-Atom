@@ -1,64 +1,58 @@
-# TyAu-Template Build and Development Guide
+# VX-ATOM Build and Development Guide
 
 ## Project Location
 
-**Repository Root:** `/Users/taylorpage/Repos/TyAu/TyAu-Template/`
-**Xcode Project:** `Template.xcodeproj`
-**Scheme:** `Template`
+**Repository Root:** `/Users/taylorpage/Repos/TyAu/Compressor/TyAu-VX-Atom/`
+**Xcode Project:** `VX-Atom.xcodeproj`
+**Scheme:** `VX-Atom`
 
 ---
 
-## Quick Start (First Time Setup)
+## Quick Start
 
-When creating a new plugin from this template, do these steps in order:
-
-### 1. Update the four-char codes in `TemplateExtension/Info.plist`
-
-```xml
-<key>subtype</key>
-<string>tmpl</string>   <!-- Change this to your plugin's unique 4-char code -->
-
-<key>manufacturer</key>
-<string>TyAu</string>   <!-- Change to your manufacturer code -->
+```bash
+cd /Users/taylorpage/Repos/TyAu/Compressor/TyAu-VX-Atom
+./build.sh
 ```
 
-### 2. Update the matching values in `Template/Model/AudioUnitHostModel.swift`
-
-```swift
-init(type: String = "aufx", subType: String = "tmpl", manufacturer: String = "TyAu")
+Expected output:
+```
+** BUILD SUCCEEDED **
+✅ Build succeeded!
+📝 Registering Audio Unit extension...
+🎸 VX-Atom is ready! Load it in Logic Pro.
 ```
 
-**Critical:** The `subType` and `manufacturer` here must exactly match `Info.plist`. A mismatch means the host app cannot find the registered AU.
+---
 
-### 3. Update app group in `TemplateExtension/TemplateExtension.entitlements`
+## Key Configuration Values
 
-```xml
-<string>$(TeamIdentifierPrefix)com.taylor.audio.Template</string>
-```
-
-Replace `com.taylor.audio.Template` with your bundle ID. Must match the host app's bundle identifier.
-
-### 4. Update bundle identifiers in Xcode
-
-- **Host app:** `com.taylor.audio.Template` → `com.taylor.audio.YourPlugin`
-- **Extension:** `com.taylor.audio.Template.TemplateExtension` → `com.taylor.audio.YourPlugin.YourPluginExtension`
-
-### 5. Update the AU display name in `TemplateExtension/Info.plist`
-
-```xml
-<key>name</key>
-<string>Taylor Audio: Template</string>   <!-- Change to your plugin name -->
-```
+| Setting | Value |
+|---------|-------|
+| AU Type | `aufx` (effect) |
+| AU Subtype | `vxat` |
+| Manufacturer | `TyAu` |
+| Host bundle ID | `com.taylor.audio.VX-Atom` |
+| Extension bundle ID | `com.taylor.audio.VX-Atom.VX-AtomExtension` |
+| Deployment target | macOS 15.7 |
+| C++ standard | C++20 |
+| Swift version | 5.0 |
 
 ---
 
 ## Building
 
-### Command Line (Recommended for Development)
+### Command Line (Recommended)
 
 ```bash
-xcodebuild -project /Users/taylorpage/Repos/TyAu/TyAu-Template/Template.xcodeproj \
-  -scheme Template build -allowProvisioningUpdates
+xcodebuild -project /Users/taylorpage/Repos/TyAu/Compressor/TyAu-VX-Atom/VX-Atom.xcodeproj \
+  -scheme VX-Atom build -allowProvisioningUpdates
+```
+
+Or use the wrapper script (also opens and registers the host app):
+
+```bash
+./build.sh
 ```
 
 ### After Building — Register the AU
@@ -66,7 +60,7 @@ xcodebuild -project /Users/taylorpage/Repos/TyAu/TyAu-Template/Template.xcodepro
 Always open the host app after a build. This registers the Audio Unit extension with the system:
 
 ```bash
-open /Users/taylorpage/Library/Developer/Xcode/DerivedData/Template-*/Build/Products/Debug/Template.app
+open /Users/taylorpage/Library/Developer/Xcode/DerivedData/VX-Atom-*/Build/Products/Debug/VX-Atom.app
 ```
 
 ---
@@ -78,19 +72,16 @@ open /Users/taylorpage/Library/Developer/Xcode/DerivedData/Template-*/Build/Prod
 1. Make your code change
 2. Build:
    ```bash
-   xcodebuild -project Template.xcodeproj -scheme Template build -allowProvisioningUpdates
+   ./build.sh
    ```
-3. Open the host app to re-register:
-   ```bash
-   open ~/Library/Developer/Xcode/DerivedData/Template-*/Build/Products/Debug/Template.app
-   ```
-4. Logic Pro will reload the updated binary automatically (or may crash/prompt to reload)
+3. The script opens the host app automatically to re-register
+4. Logic Pro will reload the updated binary (or prompt to reload)
 
 ### Testing in Logic Pro
 
-1. Build and open the host app (see above)
+1. Build and run `./build.sh`
 2. Launch Logic Pro — it rescans on startup
-3. The plugin appears under **Audio FX → Taylor Audio → Template**
+3. Plugin appears under **Audio FX → Taylor Audio → VX-Atom**
 
 If Logic doesn't see it after opening the host app:
 
@@ -109,10 +100,10 @@ rm -f ~/Library/Caches/com.apple.audio.InfoPlist_Cache.plist
 
 ## Verifying Registration
 
-Check if the extension is registered with pluginkit:
+Check if the extension is registered:
 
 ```bash
-pluginkit -mA -p com.apple.AudioUnit-UI | grep -i template
+pluginkit -mA -p com.apple.AudioUnit-UI | grep -i vx-atom
 ```
 
 Check if the AU is visible to the audio system:
@@ -124,53 +115,92 @@ auval -a | grep -i "TyAu"
 Run full validation:
 
 ```bash
-auval -v aufx tmpl TyAu
+auval -v aufx vxat TyAu
 ```
 
-Replace `tmpl` and `TyAu` with your subtype and manufacturer codes.
+Expected: `AU VALIDATION SUCCEEDED.`
 
 ---
 
 ## Project Structure
 
 ```
-TyAu-Template/
-├── Template/                        # Host app (for testing the AU)
-│   ├── TemplateApp.swift
-│   ├── ContentView.swift
-│   ├── ValidationView.swift
-│   └── Model/
-│       ├── AudioUnitHostModel.swift  # AU type/subtype/manufacturer — must match Info.plist
-│       └── AudioUnitViewModel.swift
+TyAu-VX-Atom/
+├── build.sh                             # Build + register script
+├── CONTRIBUTING.md                      # Commit message standards
+├── BUILD_AND_DEVELOPMENT.md             # This file
+├── AU_PLUGIN_CREATION_GUIDE.md          # Guide for creating new plugins from template
 │
-└── TemplateExtension/               # The Audio Unit plugin
-    ├── Info.plist                    # AU registration (type, subtype, manufacturer, name)
-    ├── TemplateExtension.entitlements # App group must match host bundle ID
-    ├── UI/
-    │   ├── TemplateExtensionMainView.swift
-    │   ├── ParameterKnob.swift
-    │   └── BypassButton.swift
+├── VX-Atom/                             # Host app (for testing the AU)
+│   ├── VX-AtomApp.swift
+│   ├── ContentView.swift
+│   └── Model/
+│       └── AudioUnitHostModel.swift     # AU type/subtype/manufacturer — must match Info.plist
+│
+└── VX-AtomExtension/                    # The Audio Unit plugin
+    ├── Info.plist                        # AU registration (type, subtype, manufacturer, name)
+    ├── VX-AtomExtension.entitlements    # App group
+    │
+    ├── Parameters/
+    │   ├── VX-AtomExtensionParameterAddresses.h   ← C enum (shared by Swift + C++)
+    │   └── Parameters.swift                        ← AUParameterTree specs
+    │
     ├── DSP/
-    │   └── TemplateExtensionDSPKernel.hpp
-    └── Parameters/
-        ├── Parameters.swift
-        └── TemplateExtensionParameterAddresses.h
+    │   └── VX-AtomExtensionDSPKernel.hpp           ← Compressor DSP engine (C++)
+    │
+    ├── UI/
+    │   ├── VX-AtomExtensionMainView.swift          ← Nuclear aesthetic SwiftUI UI
+    │   ├── ParameterKnob.swift                     ← Rotary knob component
+    │   └── BypassButton.swift                      ← Stomp switch component
+    │
+    └── Common/                                      # Rarely needs editing
+        ├── Audio Unit/
+        │   └── VX-AtomExtensionAudioUnit.swift     ← AUAudioUnit subclass
+        ├── UI/
+        │   ├── AudioUnitViewController.swift
+        │   └── ObservableAUParameter.swift
+        ├── DSP/
+        │   ├── VX-AtomExtensionAUProcessHelper.hpp
+        │   └── VX-AtomExtensionBufferedAudioBus.hpp
+        └── Parameters/
+            └── ParameterSpecBase.swift
 ```
 
 ---
 
-## Key Configuration Values (Template Defaults)
+## Files You Will Edit
 
-| Setting | Value |
-|---------|-------|
-| AU Type | `aufx` (effect) |
-| AU Subtype | `tmpl` |
-| Manufacturer | `TyAu` |
-| Host bundle ID | `com.taylor.audio.Template` |
-| Extension bundle ID | `com.taylor.audio.Template.TemplateExtension` |
-| Deployment target | macOS 15.7 |
-| C++ standard | C++20 |
-| Swift version | 5.0 |
+In most cases, only three files need changes when working on VX-ATOM:
+
+| File | What to edit |
+|------|-------------|
+| `VX-AtomExtension/Parameters/VX-AtomExtensionParameterAddresses.h` | Add/rename parameter enum values |
+| `VX-AtomExtension/Parameters/Parameters.swift` | Add/change ParameterSpec (range, default, units) |
+| `VX-AtomExtension/DSP/VX-AtomExtensionDSPKernel.hpp` | DSP algorithm, setParameter/getParameter cases |
+| `VX-AtomExtension/UI/VX-AtomExtensionMainView.swift` | UI layout, visual design |
+
+The `Common/` directory is infrastructure and rarely needs changes.
+
+---
+
+## Critical Rules: Parameter Sync
+
+The C header, Swift parameters, DSP kernel, and SwiftUI view must all use the same address integers. A mismatch causes silent bugs (wrong parameter gets set) or crashes.
+
+**Dependency chain:**
+```
+ParameterAddresses.h  (C enum, raw values 0–N)
+        ↓
+Parameters.swift      (ParameterSpec array, uses address.rawValue)
+        ↓
+AudioUnitViewController.swift → setupParameterTree() → kernel.setParameter() for each
+        ↓
+DSPKernel.hpp         (switch on VXAtomExtensionParameterAddress cases)
+        ↓
+MainView.swift        (parameterTree.global.<identifier> dot notation)
+```
+
+When adding a parameter, always update **all four layers** before building.
 
 ---
 
@@ -179,26 +209,34 @@ TyAu-Template/
 ### Plugin doesn't appear in Logic
 
 1. Confirm the AU is registered: `auval -a | grep TyAu`
-2. Run validation: `auval -v aufx tmpl TyAu`
+2. Run validation: `auval -v aufx vxat TyAu`
 3. Clear AU cache and restart Logic (see commands above)
 4. Make sure the host app was opened after the build
 
 ### Host app loads but AU shows "failed to load"
 
-- Check that `subType` in `AudioUnitHostModel.swift` matches the `subtype` in `Info.plist`
-- These must be identical four-char strings
+- Check `subType` in `AudioUnitHostModel.swift` matches `subtype` in `Info.plist`
+- These must be identical four-char strings: `vxat`
 
 ### Build fails with provisioning error
 
 Always pass `-allowProvisioningUpdates` to xcodebuild:
+
 ```bash
 xcodebuild ... build -allowProvisioningUpdates
 ```
 
 ### AU validates but sounds wrong / parameters don't work
 
-- Check `TemplateExtensionParameterAddresses.h` — addresses must match the order in `Parameters.swift`
-- Check `TemplateExtensionDSPKernel.hpp` `setParameter()` switch cases match those addresses
+- Check `VX-AtomExtensionParameterAddresses.h` — address integers must match order in `Parameters.swift`
+- Check `VX-AtomExtensionDSPKernel.hpp` `setParameter()` / `getParameter()` switch cases cover every enum value
+
+### VU meter not updating
+
+The meter polls `gainReductionDB()` via a `gainReductionProvider` closure passed from `AudioUnitViewController`. If the meter is stuck at 0:
+- Confirm `VXAtomExtensionAudioUnit.gainReductionDB()` is being called (add a print statement)
+- Confirm `gainReductionProvider` is non-nil in the view (check `AudioUnitViewController.configureSwiftUIView`)
+- Confirm `TimelineView` is firing (swap to a `Timer` if needed in non-animated host contexts)
 
 ---
 

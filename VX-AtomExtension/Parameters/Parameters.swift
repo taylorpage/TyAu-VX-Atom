@@ -11,11 +11,43 @@ import AudioToolbox
 let VXAtomExtensionParameterSpecs = ParameterTreeSpec {
     ParameterGroupSpec(identifier: "global", name: "Global") {
         ParameterSpec(
-            address: .gain,
-            identifier: "gain",
-            name: "Gain",
-            units: .linearGain,
-            valueRange: 0.0...2.0,
+            address: .squeeze,
+            identifier: "squeeze",
+            name: "Squeeze",
+            units: .generic,
+            valueRange: 0.0...10.0,
+            defaultValue: 5.0
+        )
+        ParameterSpec(
+            address: .speed,
+            identifier: "speed",
+            name: "Speed",
+            units: .generic,
+            valueRange: 0.0...10.0,
+            defaultValue: 3.0
+        )
+        ParameterSpec(
+            address: .tone,
+            identifier: "tone",
+            name: "Tone",
+            units: .generic,
+            valueRange: 0.0...10.0,
+            defaultValue: 4.0
+        )
+        ParameterSpec(
+            address: .outputGain,
+            identifier: "outputGain",
+            name: "Output",
+            units: .decibels,
+            valueRange: -12.0...12.0,
+            defaultValue: 0.0
+        )
+        ParameterSpec(
+            address: .mix,
+            identifier: "mix",
+            name: "Mix",
+            units: .generic,
+            valueRange: 0.0...1.0,
             defaultValue: 1.0
         )
         ParameterSpec(

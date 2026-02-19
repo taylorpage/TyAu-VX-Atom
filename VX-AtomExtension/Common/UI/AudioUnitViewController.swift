@@ -106,7 +106,20 @@ public class AudioUnitViewController: AUViewController, AUAudioUnitFactory {
         guard let observableParameterTree = audioUnit.observableParameterTree else {
             return
         }
-        let content = VXAtomExtensionMainView(parameterTree: observableParameterTree)
+
+        // Build a metering closure so the view can poll gain reduction at 30fps
+        // without holding a strong reference to the AU.
+        var gainReductionProvider: (() -> Float)? = nil
+        if let vxAU = audioUnit as? VXAtomExtensionAudioUnit {
+            gainReductionProvider = { [weak vxAU] in
+                vxAU?.gainReductionDB() ?? 0.0
+            }
+        }
+
+        let content = VXAtomExtensionMainView(
+            parameterTree: observableParameterTree,
+            gainReductionProvider: gainReductionProvider
+        )
         let host = HostingController(rootView: content)
         self.addChild(host)
         host.view.frame = self.view.bounds

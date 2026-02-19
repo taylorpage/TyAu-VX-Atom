@@ -10,6 +10,10 @@
 #include <AudioToolbox/AUParameters.h>
 
 typedef NS_ENUM(AUParameterAddress, VXAtomExtensionParameterAddress) {
-    gain = 0,
-    bypass = 1
+    squeeze    = 0,   // Main compression intensity (threshold + ratio + saturation)
+    speed      = 1,   // Envelope character: 0=slow optical, 10=fast FET
+    tone       = 2,   // Harmonic saturation amount
+    outputGain = 3,   // Output trim (-12 to +12 dB)
+    mix        = 4,   // Parallel compression blend (0=dry, 1=full wet)
+    bypass     = 5
 };

@@ -98,6 +98,12 @@ public class VXAtomExtensionAudioUnit: AUAudioUnit, @unchecked Sendable
         super.deallocateRenderResources()
     }
 
+    // MARK: - Metering
+    // Polls current gain reduction from the DSP kernel (safe to call from main thread at low rate).
+    func gainReductionDB() -> Float {
+        return kernel.getGainReductionDB()
+    }
+
 	public func setupParameterTree(_ parameterTree: AUParameterTree) {
 		self.parameterTree = parameterTree
 
