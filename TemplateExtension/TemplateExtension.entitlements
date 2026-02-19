@@ -8,7 +8,7 @@
 	<true/>
 	<key>com.apple.security.application-groups</key>
 	<array>
-		<string>$(TeamIdentifierPrefix)com.taylor.audio.Distortion</string>
+		<string>$(TeamIdentifierPrefix)com.taylor.audio.Template</string>
 	</array>
 	<key>inter-app-audio</key>
 	<true/>

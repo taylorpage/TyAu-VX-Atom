@@ -1,6 +1,6 @@
-# Contributing to TyAu-Distortion
+# Contributing to TyAu-Template
 
-Thank you for contributing to TyAu-Distortion! This document outlines our commit message standards and contribution guidelines.
+Thank you for contributing to TyAu! This document outlines our commit message standards and contribution guidelines.
 
 ## Git Commit Message Standards
 
@@ -34,7 +34,7 @@ The type must be one of the following:
 
 ### Scope
 
-The scope is optional and should specify the place of the commit change. Examples for TyAu-Distortion:
+The scope is optional and should specify the place of the commit change. Examples:
 
 - `ui`
 - `dsp`
@@ -65,6 +65,14 @@ The footer should contain any information about Breaking Changes and is also the
 
 Breaking Changes should start with the word `BREAKING CHANGE:` with a space or two newlines. The rest of the commit message is then used for this.
 
+Every commit footer **must** include the following authorship line:
+
+```
+Authored-By: Taylor Page <jontaylorpage@gmail.com>
+```
+
+This applies to all commits regardless of whether they were written manually or with AI assistance. Do not use `Co-Authored-By` — use `Authored-By` with the line above.
+
 ### Examples
 
 #### Simple commit
@@ -75,6 +83,7 @@ Implement soft clipping to provide smoother distortion character.
 This allows for more musical-sounding saturation.
 
 Closes #42
+Authored-By: Taylor Page <jontaylorpage@gmail.com>
 ```
 
 #### Bug fix
@@ -85,6 +94,7 @@ The drive knob was not properly scaling values, causing incorrect
 gain staging. Fixed the logarithmic mapping calculation.
 
 Fixes #123
+Authored-By: Taylor Page <jontaylorpage@gmail.com>
 ```
 
 #### Breaking change
