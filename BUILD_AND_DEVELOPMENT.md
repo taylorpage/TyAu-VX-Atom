@@ -2,7 +2,7 @@
 
 ## Project Location
 
-**Repository Root:** `/Users/taylorpage/Repos/TyAu/Compressor/TyAu-VX-Atom/`
+**Repository Root:** `/Users/taylorpage/Developer/Projects/TyAu/Compressors/TyAu-VX-Atom/`
 **Xcode Project:** `VX-Atom.xcodeproj`
 **Scheme:** `VX-Atom`
 
@@ -11,7 +11,7 @@
 ## Quick Start
 
 ```bash
-cd /Users/taylorpage/Repos/TyAu/Compressor/TyAu-VX-Atom
+cd /Users/taylorpage/Developer/Projects/TyAu/Compressors/TyAu-VX-Atom
 ./build.sh
 ```
 
@@ -45,7 +45,7 @@ Expected output:
 ### Command Line (Recommended)
 
 ```bash
-xcodebuild -project /Users/taylorpage/Repos/TyAu/Compressor/TyAu-VX-Atom/VX-Atom.xcodeproj \
+xcodebuild -project /Users/taylorpage/Developer/Projects/TyAu/Compressors/TyAu-VX-Atom/VX-Atom.xcodeproj \
   -scheme VX-Atom build -allowProvisioningUpdates
 ```
 

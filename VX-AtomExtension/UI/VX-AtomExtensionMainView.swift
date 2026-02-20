@@ -128,7 +128,7 @@ private struct VUMeter: View {
                     lineWidth: 1.5
                 )
         }
-        .frame(height: 62)
+        .frame(height: 80)
         .shadow(color: .black.opacity(0.65), radius: 5, x: 0, y: 3)
     }
 }
@@ -252,33 +252,37 @@ struct VXAtomExtensionMainView: View {
                 TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { _ in
                     VUMeter(gainReductionDB: gainReductionProvider?() ?? 0.0)
                 }
+                .padding(.top, 20)
                 .padding(.horizontal, 22)
-                .padding(.bottom, 48)
+                .padding(.bottom, 42)
 
                 // SPEED & TONE row
                 HStack {
                     LabeledKnob(param: parameterTree.global.speed,
-                                label: "SPEED", knobSize: 57)
-                        .padding(.leading, 16)
+                                label: "SPEED", knobSize: 80)
+                        .padding(.leading, 36)
                     Spacer()
                     LabeledKnob(param: parameterTree.global.tone,
-                                label: "TONE", knobSize: 57)
-                        .padding(.trailing, 16)
+                                label: "TONE", knobSize: 80)
+                        .padding(.trailing, 36)
                 }
+                .padding(.bottom, -16)
+
                 // SQUEEZE knob (large, center character)
                 squeezeSection
 
                 // OUTPUT & MIX row
                 HStack {
                     LabeledKnob(param: parameterTree.global.outputGain,
-                                label: "OUTPUT", knobSize: 57)
-                        .padding(.leading, 16)
+                                label: "OUTPUT", knobSize: 80)
+                        .padding(.leading, 36)
                     Spacer()
                     LabeledKnob(param: parameterTree.global.mix,
-                                label: "MIX", knobSize: 57)
-                        .padding(.trailing, 16)
+                                label: "MIX", knobSize: 80)
+                        .padding(.trailing, 36)
                 }
-                .padding(.bottom, 48)
+                .padding(.top, -16)
+                .padding(.bottom, 16)
 
                 // Footer
                 Text("T A Y L O R A U D I O")
@@ -324,7 +328,7 @@ struct VXAtomExtensionMainView: View {
                     .font(.system(size: 8, weight: .black, design: .monospaced))
                     .foregroundColor(Color.vxTextDim.opacity(0.65))
                     .tracking(1.5)
-                    .padding(.leading, 24)
+                    .padding(.leading, 36)
 
                 Spacer()
 
@@ -347,7 +351,7 @@ struct VXAtomExtensionMainView: View {
                             ? .clear
                             : Color.vxYellow.opacity(0.95),
                             radius: 6)
-                    .padding(.trailing, 24)
+                    .padding(.trailing, 36)
             }
         }
     }
@@ -356,8 +360,8 @@ struct VXAtomExtensionMainView: View {
         VStack(spacing: 0) {
             ZStack {
                 // Arc position labels around the knob
-                SqueezeArcLabels(knobRadius: 57)  // half of size=115
-                ParameterKnob(param: parameterTree.global.squeeze, size: 115)
+                SqueezeArcLabels(knobRadius: 80)  // half of size=160
+                ParameterKnob(param: parameterTree.global.squeeze, size: 160)
             }
 
             HStack(spacing: 8) {
