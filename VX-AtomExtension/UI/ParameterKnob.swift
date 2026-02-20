@@ -7,6 +7,14 @@
 
 import SwiftUI
 
+private class BundleToken {}
+private let knobBundle = Bundle(for: BundleToken.self)
+
+private func loadKnobImage() -> NSImage? {
+    guard let path = knobBundle.path(forResource: "knob", ofType: "png") else { return nil }
+    return NSImage(contentsOfFile: path)
+}
+
 struct ParameterKnob: View {
     @State var param: ObservableAUParameter
     let size: CGFloat
@@ -42,22 +50,8 @@ struct ParameterKnob: View {
 
     var body: some View {
         ZStack {
-            // Scale markings (0-10) - Simple white tick marks with shadow
-            ForEach(0..<11) { i in
-                Rectangle()
-                    .fill(Color.white)
-                    .frame(width: 2, height: i % 2 == 0 ? 12 : 8)
-                    .shadow(color: Color(red: 0.1, green: 0.15, blue: 0.25).opacity(0.8), radius: 1, x: -1, y: -1)
-                    .shadow(color: Color(red: 0.1, green: 0.15, blue: 0.25).opacity(0.8), radius: 1, x: 1, y: -1)
-                    .shadow(color: Color(red: 0.1, green: 0.15, blue: 0.25).opacity(0.8), radius: 1, x: -1, y: 1)
-                    .shadow(color: Color(red: 0.1, green: 0.15, blue: 0.25).opacity(0.8), radius: 1, x: 1, y: 1)
-                    .shadow(color: Color(red: 0.1, green: 0.15, blue: 0.25).opacity(0.5), radius: 2, x: 0, y: 0)
-                    .offset(y: -scaleRadius)
-                    .rotationEffect(Angle(degrees: -135 + (270.0 / 10.0) * Double(i)))
-            }
-
             // Knob image with rotation
-            if let knobImage = NSImage(named: "knob") {
+            if let knobImage = loadKnobImage() {
                 Image(nsImage: knobImage)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
@@ -87,7 +81,7 @@ struct ParameterKnob: View {
                     .shadow(color: .black.opacity(0.5), radius: 6, x: 0, y: 3)
             }
         }
-        .frame(width: size + scaleRadius * 2, height: size + scaleRadius * 2)
+        .frame(width: size, height: size)
         .gesture(
             DragGesture(minimumDistance: 0)
                 .onChanged { gesture in

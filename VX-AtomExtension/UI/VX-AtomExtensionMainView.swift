@@ -7,6 +7,11 @@
 
 import SwiftUI
 
+// MARK: - Bundle
+
+private class BundleToken {}
+private let extensionBundle = Bundle(for: BundleToken.self)
+
 // MARK: - Color Palette
 
 private extension Color {
@@ -25,71 +30,106 @@ private struct VUMeter: View {
     let gainReductionDB: Float
 
     var body: some View {
-        Canvas { ctx, size in
-            // Ivory background
-            ctx.fill(Path(CGRect(origin: .zero, size: size)), with: .color(.vxIvory))
-
-            // Scale marks and labels
-            let marks: [(Float, String, Bool)] = [
-                (0, "0", true), (3, "", false), (5, "5", true),
-                (7, "", false), (10, "10", true), (14, "", false), (20, "20", true)
-            ]
-            let insetX: CGFloat = 12
-            let usableW = size.width - insetX * 2
-
-            for (db, label, isMajor) in marks {
-                let x = CGFloat(db) / 20.0 * usableW + insetX
-                let tickH: CGFloat = isMajor ? 10 : 6
-                var tick = Path()
-                tick.move(to: CGPoint(x: x, y: size.height - tickH - 4))
-                tick.addLine(to: CGPoint(x: x, y: size.height - 4))
-                ctx.stroke(tick, with: .color(.black.opacity(0.50)), lineWidth: isMajor ? 1.5 : 1)
-
-                if isMajor && !label.isEmpty {
-                    let resolved = ctx.resolve(
-                        Text(label)
-                            .font(.system(size: 7.5, weight: .regular, design: .monospaced))
-                            .foregroundStyle(Color.black.opacity(0.55))
+        ZStack {
+            // Dark outer frame casing
+            RoundedRectangle(cornerRadius: 5)
+                .fill(
+                    LinearGradient(
+                        colors: [Color(white: 0.18), Color(white: 0.07)],
+                        startPoint: .top,
+                        endPoint: .bottom
                     )
-                    ctx.draw(resolved, at: CGPoint(x: x, y: size.height - tickH - 5), anchor: .bottom)
+                )
+
+            // Meter face
+            Canvas { ctx, size in
+                // Cream/ivory aged background
+                ctx.fill(
+                    Path(roundedRect: CGRect(origin: .zero, size: size), cornerRadius: 2),
+                    with: .color(Color(red: 0.948, green: 0.930, blue: 0.852))
+                )
+
+                let insetX: CGFloat = 14
+                let usableW = size.width - insetX * 2
+                let labelY: CGFloat = 13      // label centers
+                let tickBaseY: CGFloat = 19   // ticks hang downward from here
+                let majorH: CGFloat = 10
+                let minorH: CGFloat = 5
+
+                // Minor ticks every 2 dB (skip major positions)
+                for i in stride(from: 0, through: 20, by: 2) {
+                    guard i % 5 != 0 else { continue }
+                    let x = CGFloat(i) / 20.0 * usableW + insetX
+                    var p = Path()
+                    p.move(to: CGPoint(x: x, y: tickBaseY))
+                    p.addLine(to: CGPoint(x: x, y: tickBaseY + minorH))
+                    ctx.stroke(p, with: .color(.black.opacity(0.38)), lineWidth: 1)
                 }
+
+                // Major ticks + labels
+                for (dbInt, label) in [(0,"0"),(5,"5"),(10,"10"),(15,"15"),(20,"20")] {
+                    let x = CGFloat(dbInt) / 20.0 * usableW + insetX
+                    let isRed = dbInt >= 10
+
+                    var p = Path()
+                    p.move(to: CGPoint(x: x, y: tickBaseY))
+                    p.addLine(to: CGPoint(x: x, y: tickBaseY + majorH))
+                    ctx.stroke(p, with: .color(isRed ? .vxRed.opacity(0.75) : .black.opacity(0.60)), lineWidth: 1.5)
+
+                    let t = ctx.resolve(
+                        Text(label)
+                            .font(.system(size: 9, weight: .regular, design: .monospaced))
+                            .foregroundStyle(isRed ? Color.vxRed : Color.black.opacity(0.80))
+                    )
+                    ctx.draw(t, at: CGPoint(x: x, y: labelY), anchor: .center)
+                }
+
+                // Indicator dots (vertically centered in lower portion)
+                let dotY = tickBaseY + majorH + (size.height - (tickBaseY + majorH) - 7) / 2
+                // Green (left) — always on
+                ctx.fill(
+                    Path(ellipseIn: CGRect(x: 4, y: dotY, width: 7, height: 7)),
+                    with: .color(Color(red: 0.20, green: 0.85, blue: 0.22).opacity(0.90))
+                )
+                // Yellow (right) — dims when GR is light
+                let heavyGR = gainReductionDB > 10
+                ctx.fill(
+                    Path(ellipseIn: CGRect(x: size.width - 11, y: dotY, width: 7, height: 7)),
+                    with: .color(Color.vxYellow.opacity(heavyGR ? 0.95 : 0.32))
+                )
+
+                // Needle — full height, red
+                let clampedGR = CGFloat(min(max(gainReductionDB, 0), 20))
+                let needleX = clampedGR / 20.0 * usableW + insetX
+                var needle = Path()
+                needle.move(to: CGPoint(x: needleX, y: 2))
+                needle.addLine(to: CGPoint(x: needleX, y: size.height - 2))
+                ctx.stroke(needle, with: .color(.vxRed), lineWidth: 2)
+
+                // Subtle glass glare across top
+                ctx.fill(
+                    Path(roundedRect: CGRect(x: 1, y: 1, width: size.width - 2, height: size.height * 0.28),
+                         cornerRadius: 2),
+                    with: .color(.white.opacity(0.22))
+                )
             }
+            .padding(.horizontal, 7)
+            .padding(.vertical, 6)
+            .clipShape(RoundedRectangle(cornerRadius: 2))
 
-            // Needle (vertical line showing GR amount)
-            let clampedGR = CGFloat(min(max(gainReductionDB, 0), 20))
-            let needleX = clampedGR / 20.0 * usableW + insetX
-            var needle = Path()
-            needle.move(to: CGPoint(x: needleX, y: 4))
-            needle.addLine(to: CGPoint(x: needleX, y: size.height - 16))
-            ctx.stroke(needle, with: .color(.vxRed), lineWidth: 2)
-
-            // Needle pivot dot
-            let dotR: CGFloat = 3
-            ctx.fill(
-                Path(ellipseIn: CGRect(x: needleX - dotR, y: size.height - 16 - dotR,
-                                       width: dotR * 2, height: dotR * 2)),
-                with: .color(.vxRed)
-            )
-
-            // Glass glare
-            ctx.fill(
-                Path(roundedRect: CGRect(x: 2, y: 2,
-                                          width: size.width - 4, height: size.height * 0.30),
-                     cornerRadius: 2),
-                with: .color(.white.opacity(0.18))
-            )
-
-            // Border
-            ctx.stroke(
-                Path(roundedRect: CGRect(origin: .zero, size: size).insetBy(dx: 0.5, dy: 0.5),
-                     cornerRadius: 3),
-                with: .color(.black.opacity(0.45)),
-                lineWidth: 1
-            )
+            // Frame bevel edge
+            RoundedRectangle(cornerRadius: 5)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [Color(white: 0.42), Color(white: 0.05)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1.5
+                )
         }
-        .frame(height: 46)
-        .clipShape(RoundedRectangle(cornerRadius: 3))
-        .shadow(color: .black.opacity(0.45), radius: 3, x: 0, y: 2)
+        .frame(height: 62)
+        .shadow(color: .black.opacity(0.65), radius: 5, x: 0, y: 3)
     }
 }
 
@@ -128,7 +168,7 @@ private struct LabeledKnob: View {
     let knobSize: CGFloat
 
     var body: some View {
-        VStack(spacing: 3) {
+        VStack(spacing: 0) {
             ParameterKnob(param: param, size: knobSize)
             Text(label)
                 .font(.system(size: 10, weight: .bold, design: .monospaced))
@@ -179,8 +219,8 @@ struct VXAtomExtensionMainView: View {
     var parameterTree: ObservableAUParameterGroup
     var gainReductionProvider: (() -> Float)?
 
-    private let panelWidth:  CGFloat = 300
-    private let panelHeight: CGFloat = 580
+    private let panelWidth:  CGFloat = 240
+    private let panelHeight: CGFloat = 608
 
     var body: some View {
         ZStack {
@@ -213,58 +253,32 @@ struct VXAtomExtensionMainView: View {
                     VUMeter(gainReductionDB: gainReductionProvider?() ?? 0.0)
                 }
                 .padding(.horizontal, 22)
-                .padding(.bottom, 8)
-
-                // SQUEEZE knob (large, center character)
-                squeezeSection
-                    .padding(.bottom, 10)
+                .padding(.bottom, 48)
 
                 // SPEED & TONE row
-                HStack(spacing: 0) {
+                HStack {
                     LabeledKnob(param: parameterTree.global.speed,
-                                label: "SPEED", knobSize: 64)
-                        .frame(maxWidth: .infinity)
-
-                    // Radioactive decoration (center divider)
-                    VStack(spacing: 3) {
-                        Text("☢")
-                            .font(.system(size: 22))
-                            .foregroundColor(Color.vxYellow.opacity(0.70))
-                        Text("ATOM")
-                            .font(.system(size: 6, weight: .black, design: .monospaced))
-                            .foregroundColor(Color.vxTextDim.opacity(0.65))
-                            .tracking(2.5)
-                    }
-                    .frame(width: 48)
-
+                                label: "SPEED", knobSize: 57)
+                        .padding(.leading, 16)
+                    Spacer()
                     LabeledKnob(param: parameterTree.global.tone,
-                                label: "TONE", knobSize: 64)
-                        .frame(maxWidth: .infinity)
+                                label: "TONE", knobSize: 57)
+                        .padding(.trailing, 16)
                 }
-                .padding(.horizontal, 12)
-                .padding(.bottom, 8)
-
-                // Thin separator
-                Rectangle()
-                    .fill(Color.white.opacity(0.07))
-                    .frame(width: 200, height: 1)
-                    .padding(.bottom, 8)
+                // SQUEEZE knob (large, center character)
+                squeezeSection
 
                 // OUTPUT & MIX row
-                HStack(spacing: 0) {
+                HStack {
                     LabeledKnob(param: parameterTree.global.outputGain,
-                                label: "OUTPUT", knobSize: 64)
-                        .frame(maxWidth: .infinity)
+                                label: "OUTPUT", knobSize: 57)
+                        .padding(.leading, 16)
+                    Spacer()
                     LabeledKnob(param: parameterTree.global.mix,
-                                label: "MIX", knobSize: 64)
-                        .frame(maxWidth: .infinity)
+                                label: "MIX", knobSize: 57)
+                        .padding(.trailing, 16)
                 }
-                .padding(.horizontal, 26)
-                .padding(.bottom, 10)
-
-                // Bypass stomp
-                BypassButton(param: parameterTree.global.bypass)
-                    .padding(.bottom, 8)
+                .padding(.bottom, 48)
 
                 // Footer
                 Text("T A Y L O R A U D I O")
@@ -281,11 +295,12 @@ struct VXAtomExtensionMainView: View {
 
     private var backgroundPanel: some View {
         ZStack {
-            LinearGradient(
-                colors: [Color.vxTealMid, Color.vxTealDark],
-                startPoint: .top,
-                endPoint: .bottom
-            )
+            if let path = extensionBundle.path(forResource: "background", ofType: "png"),
+               let nsImage = NSImage(contentsOfFile: path) {
+                Image(nsImage: nsImage)
+                    .resizable()
+                    .scaledToFill()
+            }
             // Edge vignette
             RadialGradient(
                 colors: [Color.clear, Color.black.opacity(0.28)],
@@ -303,13 +318,6 @@ struct VXAtomExtensionMainView: View {
 
     private var titleBar: some View {
         ZStack {
-            // Subtle top highlight stripe
-            VStack {
-                Rectangle()
-                    .fill(Color.white.opacity(0.10))
-                    .frame(height: 1)
-                Spacer()
-            }
             HStack(alignment: .center, spacing: 0) {
                 // Left badge
                 Text("MK-I")
@@ -348,21 +356,22 @@ struct VXAtomExtensionMainView: View {
         VStack(spacing: 0) {
             ZStack {
                 // Arc position labels around the knob
-                SqueezeArcLabels(knobRadius: 43)  // half of size=86
-                ParameterKnob(param: parameterTree.global.squeeze, size: 86)
+                SqueezeArcLabels(knobRadius: 57)  // half of size=115
+                ParameterKnob(param: parameterTree.global.squeeze, size: 115)
             }
-            .padding(.bottom, 4)
 
-            // Engraved separator line
-            Rectangle()
-                .fill(Color.white.opacity(0.08))
-                .frame(width: 76, height: 1)
-                .padding(.bottom, 4)
-
-            Text("SQUEEZE")
-                .font(.system(size: 13, weight: .black, design: .monospaced))
-                .foregroundColor(.vxTextLight)
-                .tracking(3)
+            HStack(spacing: 8) {
+                Text("☢")
+                    .font(.system(size: 14))
+                    .foregroundColor(Color.vxYellow.opacity(0.70))
+                Text("SQUEEZE")
+                    .font(.system(size: 13, weight: .black, design: .monospaced))
+                    .foregroundColor(.vxTextLight)
+                    .tracking(3)
+                Text("☢")
+                    .font(.system(size: 14))
+                    .foregroundColor(Color.vxYellow.opacity(0.70))
+            }
 
             Text("You sure?")
                 .font(.system(size: 8.5, weight: .regular, design: .monospaced))
