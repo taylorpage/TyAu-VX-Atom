@@ -43,60 +43,76 @@ private struct VUMeter: View {
 
             // Meter face
             Canvas { ctx, size in
-                // Cream/ivory aged background
-                ctx.fill(
-                    Path(roundedRect: CGRect(origin: .zero, size: size), cornerRadius: 2),
-                    with: .color(Color(red: 0.948, green: 0.930, blue: 0.852))
-                )
-
-                let insetX: CGFloat = 14
+                // Rails flush with face edges; ticks span full width
+                let insetX: CGFloat = 16   // left/right margin reserved for dots
                 let usableW = size.width - insetX * 2
-                let labelY: CGFloat = 13      // label centers
-                let tickBaseY: CGFloat = 19   // ticks hang downward from here
-                let majorH: CGFloat = 10
-                let minorH: CGFloat = 5
+                let topRailY:    CGFloat = 1
+                let bottomRailY: CGFloat = size.height - 1
+                let majorH: CGFloat = 10   // tick length inward from each rail
+                let minorH: CGFloat = 6
+                let labelY = size.height / 2   // labels float in the vertical center
 
-                // Minor ticks every 2 dB (skip major positions)
-                for i in stride(from: 0, through: 20, by: 2) {
-                    guard i % 5 != 0 else { continue }
-                    let x = CGFloat(i) / 20.0 * usableW + insetX
-                    var p = Path()
-                    p.move(to: CGPoint(x: x, y: tickBaseY))
-                    p.addLine(to: CGPoint(x: x, y: tickBaseY + minorH))
-                    ctx.stroke(p, with: .color(.black.opacity(0.38)), lineWidth: 1)
+                // Top and bottom horizontal rail lines — full width
+                for railY in [topRailY, bottomRailY] {
+                    var rail = Path()
+                    rail.move(to: CGPoint(x: 0, y: railY))
+                    rail.addLine(to: CGPoint(x: size.width, y: railY))
+                    ctx.stroke(rail, with: .color(.black.opacity(0.40)), lineWidth: 0.8)
                 }
 
-                // Major ticks + labels
-                for (dbInt, label) in [(0,"0"),(5,"5"),(10,"10"),(15,"15"),(20,"20")] {
-                    let x = CGFloat(dbInt) / 20.0 * usableW + insetX
-                    let isRed = dbInt >= 10
-
-                    var p = Path()
-                    p.move(to: CGPoint(x: x, y: tickBaseY))
-                    p.addLine(to: CGPoint(x: x, y: tickBaseY + majorH))
-                    ctx.stroke(p, with: .color(isRed ? .vxRed.opacity(0.75) : .black.opacity(0.60)), lineWidth: 1.5)
-
-                    let t = ctx.resolve(
-                        Text(label)
-                            .font(.system(size: 9, weight: .regular, design: .monospaced))
-                            .foregroundStyle(isRed ? Color.vxRed : Color.black.opacity(0.80))
-                    )
-                    ctx.draw(t, at: CGPoint(x: x, y: labelY), anchor: .center)
-                }
-
-                // Indicator dots (vertically centered in lower portion)
-                let dotY = tickBaseY + majorH + (size.height - (tickBaseY + majorH) - 7) / 2
+                // Indicator dots — vertically centered, in the left/right margins
+                let dotSize: CGFloat = 8
+                let dotY = labelY - dotSize / 2
                 // Green (left) — always on
                 ctx.fill(
-                    Path(ellipseIn: CGRect(x: 4, y: dotY, width: 7, height: 7)),
-                    with: .color(Color(red: 0.20, green: 0.85, blue: 0.22).opacity(0.90))
+                    Path(ellipseIn: CGRect(x: 4, y: dotY, width: dotSize, height: dotSize)),
+                    with: .color(Color(red: 0.20, green: 0.85, blue: 0.22).opacity(0.92))
                 )
                 // Yellow (right) — dims when GR is light
                 let heavyGR = gainReductionDB > 10
                 ctx.fill(
-                    Path(ellipseIn: CGRect(x: size.width - 11, y: dotY, width: 7, height: 7)),
-                    with: .color(Color.vxYellow.opacity(heavyGR ? 0.95 : 0.32))
+                    Path(ellipseIn: CGRect(x: size.width - 4 - dotSize, y: dotY, width: dotSize, height: dotSize)),
+                    with: .color(Color.vxYellow.opacity(heavyGR ? 0.95 : 0.30))
                 )
+
+                // Minor ticks on both rails (every 1 dB, skip major positions)
+                for i in stride(from: 0, through: 20, by: 1) {
+                    guard i % 5 != 0 else { continue }
+                    let x = CGFloat(i) / 20.0 * usableW + insetX
+                    let isRed = i >= 10
+                    let color: GraphicsContext.Shading = .color(isRed ? Color.vxRed.opacity(0.45) : .black.opacity(0.28))
+                    var top = Path()
+                    top.move(to: CGPoint(x: x, y: topRailY))
+                    top.addLine(to: CGPoint(x: x, y: topRailY + minorH))
+                    ctx.stroke(top, with: color, lineWidth: 0.8)
+                    var bot = Path()
+                    bot.move(to: CGPoint(x: x, y: bottomRailY))
+                    bot.addLine(to: CGPoint(x: x, y: bottomRailY - minorH))
+                    ctx.stroke(bot, with: color, lineWidth: 0.8)
+                }
+
+                // Major ticks on both rails + centered labels
+                for (dbInt, label) in [(0,"0"),(5,"5"),(10,"10"),(15,"15"),(20,"20")] {
+                    let x = CGFloat(dbInt) / 20.0 * usableW + insetX
+                    let isRed = dbInt >= 10
+                    let color: GraphicsContext.Shading = .color(isRed ? Color.vxRed.opacity(0.85) : .black.opacity(0.70))
+
+                    var top = Path()
+                    top.move(to: CGPoint(x: x, y: topRailY))
+                    top.addLine(to: CGPoint(x: x, y: topRailY + majorH))
+                    ctx.stroke(top, with: color, lineWidth: 1.5)
+                    var bot = Path()
+                    bot.move(to: CGPoint(x: x, y: bottomRailY))
+                    bot.addLine(to: CGPoint(x: x, y: bottomRailY - majorH))
+                    ctx.stroke(bot, with: color, lineWidth: 1.5)
+
+                    let t = ctx.resolve(
+                        Text(label)
+                            .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                            .foregroundStyle(isRed ? Color.vxRed : Color.black.opacity(0.85))
+                    )
+                    ctx.draw(t, at: CGPoint(x: x, y: labelY), anchor: .center)
+                }
 
                 // Needle — full height, red
                 let clampedGR = CGFloat(min(max(gainReductionDB, 0), 20))
@@ -104,17 +120,21 @@ private struct VUMeter: View {
                 var needle = Path()
                 needle.move(to: CGPoint(x: needleX, y: 2))
                 needle.addLine(to: CGPoint(x: needleX, y: size.height - 2))
-                ctx.stroke(needle, with: .color(.vxRed), lineWidth: 2)
+                ctx.stroke(needle, with: .color(.vxRed), lineWidth: 2.5)
 
-                // Subtle glass glare across top
-                ctx.fill(
-                    Path(roundedRect: CGRect(x: 1, y: 1, width: size.width - 2, height: size.height * 0.28),
-                         cornerRadius: 2),
-                    with: .color(.white.opacity(0.22))
-                )
+            }
+            .background {
+                if let path = extensionBundle.path(forResource: "vuBackground", ofType: "png"),
+                   let nsImage = NSImage(contentsOfFile: path) {
+                    Image(nsImage: nsImage)
+                        .resizable()
+                        .scaleEffect(4.0)
+                } else {
+                    Color(red: 0.948, green: 0.930, blue: 0.852)
+                }
             }
             .padding(.horizontal, 7)
-            .padding(.vertical, 6)
+            .padding(.vertical, 5)
             .clipShape(RoundedRectangle(cornerRadius: 2))
 
             // Frame bevel edge
@@ -259,11 +279,11 @@ struct VXAtomExtensionMainView: View {
                 // SPEED & TONE row
                 HStack {
                     LabeledKnob(param: parameterTree.global.speed,
-                                label: "SPEED", knobSize: 80)
+                                label: "SPEED", knobSize: 90)
                         .padding(.leading, 36)
                     Spacer()
                     LabeledKnob(param: parameterTree.global.tone,
-                                label: "TONE", knobSize: 80)
+                                label: "TONE", knobSize: 90)
                         .padding(.trailing, 36)
                 }
                 .padding(.bottom, -16)
@@ -274,11 +294,11 @@ struct VXAtomExtensionMainView: View {
                 // OUTPUT & MIX row
                 HStack {
                     LabeledKnob(param: parameterTree.global.outputGain,
-                                label: "OUTPUT", knobSize: 80)
+                                label: "OUTPUT", knobSize: 90)
                         .padding(.leading, 36)
                     Spacer()
                     LabeledKnob(param: parameterTree.global.mix,
-                                label: "MIX", knobSize: 80)
+                                label: "MIX", knobSize: 90)
                         .padding(.trailing, 36)
                 }
                 .padding(.top, -16)
@@ -360,8 +380,8 @@ struct VXAtomExtensionMainView: View {
         VStack(spacing: 0) {
             ZStack {
                 // Arc position labels around the knob
-                SqueezeArcLabels(knobRadius: 80)  // half of size=160
-                ParameterKnob(param: parameterTree.global.squeeze, size: 160)
+                SqueezeArcLabels(knobRadius: 90)  // half of size=180
+                ParameterKnob(param: parameterTree.global.squeeze, size: 180)
             }
 
             HStack(spacing: 8) {
