@@ -141,9 +141,10 @@ final class ObservableAUParameter: ObservableAUParameterNode {
         /// changes from the host. The only role of this callback is to update the UI if the value is changed by the host.
         self.observerToken = parameter.token { @Sendable (_ address: AUParameterAddress, _ auValue: AUValue) in
 
-            DispatchQueue.main.async {
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
                 guard address == self.parameter?.address else { return }
-                
+
                 // Don't update the UI if the user is currently interacting
                 guard self.editingState == .inactive else { return }
 
@@ -151,6 +152,12 @@ final class ObservableAUParameter: ObservableAUParameterNode {
                 self.value = auValue
                 self.editingState = .inactive
             }
+        }
+    }
+
+    deinit {
+        if let token = observerToken {
+            parameter?.removeParameterObserver(token)
         }
     }
 

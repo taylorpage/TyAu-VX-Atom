@@ -79,14 +79,15 @@ public class VXAtomExtensionAudioUnit: AUAudioUnit, @unchecked Sendable
             throw NSError(domain: NSOSStatusErrorDomain, code: Int(kAudioUnitErr_FailedInitialization), userInfo: nil)
         }
 
+        // Call super first so the host can set maximumFramesToRender before we allocate buffers.
+        try super.allocateRenderResources()
+
         inputBus.allocateRenderResources(self.maximumFramesToRender);
 
 		kernel.setMusicalContextBlock(self.musicalContextBlock)
         kernel.initialize(Int32(inputChannelCount), Int32(outputChannelCount), outputBus!.format.sampleRate)
 
         processHelper?.setChannelCount(inputChannelCount, outputChannelCount)
-
-		try super.allocateRenderResources()
 	}
 
     // Deallocate resources allocated in allocateRenderResourcesAndReturnError:
@@ -123,7 +124,7 @@ public class VXAtomExtensionAudioUnit: AUAudioUnit, @unchecked Sendable
 
 		// implementorValueProvider is called when the value needs to be refreshed.
 		parameterTree?.implementorValueProvider = { [weak self] param in
-            return self!.kernel.getParameter(param.address)
+            return self?.kernel.getParameter(param.address) ?? 0.0
 		}
 
 		// A function to provide string representations of parameter values.
