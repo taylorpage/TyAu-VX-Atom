@@ -335,11 +335,12 @@ private:
     }
 
     // Recompute attack/release IIR coefficients from SPEED and sample rate.
-    // SPEED 0 = slow optical warmth, SPEED 10 = fast FET aggression.
+    // SPEED 0 = slow optical warmth (50ms attack / 400ms release)
+    // SPEED 10 = sub-millisecond FET aggression (0.5ms attack / 25ms release)
     void updateCoefficients() {
         const float speedNorm  = mSpeed / 10.0f;
-        const double attackMs  = static_cast<double>(lerp(50.0f, 3.0f,   speedNorm));
-        const double releaseMs = static_cast<double>(lerp(400.0f, 75.0f, speedNorm));
+        const double attackMs  = static_cast<double>(lerp(50.0f, 0.5f,   speedNorm));
+        const double releaseMs = static_cast<double>(lerp(400.0f, 25.0f, speedNorm));
         mAttackCoeff  = computeIIRCoeff(attackMs  * 0.001, mSampleRate);
         mReleaseCoeff = computeIIRCoeff(releaseMs * 0.001, mSampleRate);
         // Stage 2: 2x slower attack and 1.5x longer release than Stage 1.
