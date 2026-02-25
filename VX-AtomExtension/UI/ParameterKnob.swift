@@ -11,7 +11,7 @@ private class BundleToken {}
 private let knobBundle = Bundle(for: BundleToken.self)
 
 private func loadKnobImage() -> NSImage? {
-    guard let path = knobBundle.path(forResource: "knob", ofType: "png") else { return nil }
+    guard let path = knobBundle.path(forResource: "knobSaturated", ofType: "png") else { return nil }
     return NSImage(contentsOfFile: path)
 }
 
@@ -57,6 +57,10 @@ struct ParameterKnob: View {
                     .aspectRatio(contentMode: .fit)
                     .frame(width: knobSize, height: knobSize)
                     .rotationEffect(angle)
+                    .overlay(
+                        Circle()
+                            .stroke(Color.black.opacity(0.28), lineWidth: 1.5)
+                    )
                     .shadow(color: .black.opacity(0.5), radius: 6, x: 0, y: 3)
             } else {
                 // Fallback if image not found

@@ -148,7 +148,7 @@ private struct LabeledKnob: View {
     let knobSize: CGFloat
 
     var body: some View {
-        VStack(spacing: 0) {
+        VStack(spacing: 5) {
             ParameterKnob(param: param, size: knobSize)
             Text(label)
                 .font(.system(size: 10, weight: .bold, design: .monospaced))
@@ -253,14 +253,11 @@ struct VXAtomExtensionMainView: View {
                 .padding(.top, 6)
                 .padding(.bottom, 6)
 
-                // Footer
-                Text("T A Y L O R A U D I O")
-                    .font(.system(size: 7.5, weight: .medium, design: .monospaced))
-                    .foregroundColor(Color.vxTextDim.opacity(0.55))
-                    .tracking(3)
-                    .padding(.bottom, 10)
-
                 Spacer()
+
+                // Taylor Audio logo — bottom center footer
+                taylorAudioLogo
+                    .padding(.bottom, 2)
             }
         }
         .frame(width: panelWidth, height: panelHeight)
@@ -360,11 +357,6 @@ struct VXAtomExtensionMainView: View {
                 .tracking(3)
                 .padding(.top, -10)
 
-            Text("You sure?")
-                .font(.system(size: 8.5, weight: .regular, design: .monospaced))
-                .foregroundColor(.vxTextDim)
-                .tracking(0.5)
-                .padding(.top, 1)
         }
     }
 
@@ -385,6 +377,19 @@ struct VXAtomExtensionMainView: View {
         }
         .frame(width: 76, height: 76)
         .shadow(color: .black.opacity(0.50), radius: 4, x: 0, y: 2)
+    }
+
+    private var taylorAudioLogo: some View {
+        Group {
+            if let path = extensionBundle.path(forResource: "taylorAudio", ofType: "png"),
+               let nsImage = NSImage(contentsOfFile: path) {
+                Image(nsImage: nsImage)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(height: 34)
+                    .opacity(0.80)
+            }
+        }
     }
 
     private var bypassParam: ObservableAUParameter {

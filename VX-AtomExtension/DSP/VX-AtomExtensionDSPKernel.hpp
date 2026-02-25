@@ -132,7 +132,7 @@ public:
         // Pre-compute squeeze-dependent values once per buffer (not per sample)
         const float squeezeNorm   = mSqueeze / 10.0f;
         const float thresholdDB   = lerp(-6.0f, -30.0f, squeezeNorm);
-        const float ratio         = lerp(2.0f, 12.0f, squeezeNorm);
+        const float ratio         = lerp(2.0f, 20.0f, squeezeNorm);
         const float kneeDB        = lerp(8.0f, 0.0f, squeezeNorm);
         // Auto makeup: conservative estimate of gain lost at threshold
         const float autoMakeupDB  = -thresholdDB * (1.0f - 1.0f / ratio) * 0.5f;
