@@ -34,28 +34,13 @@ private struct VUMeter: View {
             // Meter face
             Canvas { ctx, size in
                 // Rails flush with face edges; ticks span full width
-                let insetX: CGFloat = 16   // left/right margin reserved for dots
+                let insetX: CGFloat = 8
                 let usableW = size.width - insetX * 2
-                let topRailY:    CGFloat = 2
-                let bottomRailY: CGFloat = size.height - 2
+                let topRailY:    CGFloat = 10
+                let bottomRailY: CGFloat = size.height - 10
                 let majorH: CGFloat = 11   // tick length inward from each rail
                 let minorH: CGFloat = 6
                 let labelY = size.height / 2   // labels float in the vertical center
-
-                // Indicator dots — vertically centered, in the left/right margins
-                let dotSize: CGFloat = 8
-                let dotY = labelY - dotSize / 2
-                // Green (left) — always on
-                ctx.fill(
-                    Path(ellipseIn: CGRect(x: 4, y: dotY, width: dotSize, height: dotSize)),
-                    with: .color(Color(red: 0.20, green: 0.85, blue: 0.22).opacity(0.92))
-                )
-                // Yellow (right) — dims when GR is light
-                let heavyGR = gainReductionDB > 10
-                ctx.fill(
-                    Path(ellipseIn: CGRect(x: size.width - 4 - dotSize, y: dotY, width: dotSize, height: dotSize)),
-                    with: .color(Color.vxYellow.opacity(heavyGR ? 0.95 : 0.30))
-                )
 
                 // 7 major ticks with 1 minor tick centered exactly between each pair
                 let majorDBs = [1, 4, 7, 10, 13, 16, 19]
@@ -106,8 +91,8 @@ private struct VUMeter: View {
                 let clampedGR = CGFloat(min(max(gainReductionDB, 0), 20))
                 let needleX = clampedGR / 20.0 * usableW + insetX
                 var needle = Path()
-                needle.move(to: CGPoint(x: needleX, y: 2))
-                needle.addLine(to: CGPoint(x: needleX, y: size.height - 2))
+                needle.move(to: CGPoint(x: needleX, y: 10))
+                needle.addLine(to: CGPoint(x: needleX, y: size.height - 10))
                 ctx.stroke(needle, with: .color(.vxRed), lineWidth: 2.5)
 
             }
@@ -116,16 +101,14 @@ private struct VUMeter: View {
                    let nsImage = NSImage(contentsOfFile: path) {
                     Image(nsImage: nsImage)
                         .resizable()
-                        .scaledToFill()
                 } else {
                     Color(red: 0.948, green: 0.930, blue: 0.852)
                 }
             }
             .padding(.horizontal, 7)
-            .padding(.vertical, 5)
             .clipShape(RoundedRectangle(cornerRadius: 2))
         }
-        .frame(height: 80)
+        .frame(height: 84)
         .shadow(color: .black.opacity(0.65), radius: 5, x: 0, y: 3)
     }
 }
@@ -224,20 +207,6 @@ struct VXAtomExtensionMainView: View {
             // MARK: Panel background
             backgroundPanel
 
-            // MARK: Corner bolts
-            CornerBolt()
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                .padding(10)
-            CornerBolt()
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-                .padding(10)
-            CornerBolt()
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
-                .padding(10)
-            CornerBolt()
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
-                .padding(10)
-
             // MARK: Content stack
             VStack(spacing: 0) {
 
@@ -249,37 +218,40 @@ struct VXAtomExtensionMainView: View {
                 TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { _ in
                     VUMeter(gainReductionDB: gainReductionProvider?() ?? 0.0)
                 }
-                .padding(.top, 20)
-                .padding(.horizontal, 22)
-                .padding(.bottom, 42)
+                .padding(.top, 8)
+                .padding(.horizontal, 38)
+                .padding(.bottom, 8)
 
-                // SPEED & TONE row
-                HStack {
-                    LabeledKnob(param: parameterTree.global.speed,
-                                label: "SPEED", knobSize: 90)
-                        .padding(.leading, 36)
-                    Spacer()
-                    LabeledKnob(param: parameterTree.global.tone,
-                                label: "TONE", knobSize: 90)
-                        .padding(.trailing, 36)
-                }
-                .padding(.bottom, -16)
+                Spacer(minLength: 0).frame(maxHeight: 28)
 
                 // SQUEEZE knob (large, center character)
                 squeezeSection
+                    .padding(.bottom, 2)
 
-                // OUTPUT & MIX row
+                // SPEED | LOGO | TONE row — equal thirds across the panel
+                HStack(spacing: 0) {
+                    LabeledKnob(param: parameterTree.global.speed,
+                                label: "SPEED", knobSize: 65)
+                        .frame(maxWidth: .infinity)
+                    radioactiveLogo
+                        .frame(maxWidth: .infinity)
+                    LabeledKnob(param: parameterTree.global.tone,
+                                label: "TONE", knobSize: 65)
+                        .frame(maxWidth: .infinity)
+                }
+                .padding(.horizontal, 20)
+
+                // OUTPUT & MIX row — inset inward, centered below logo
                 HStack {
                     LabeledKnob(param: parameterTree.global.outputGain,
-                                label: "OUTPUT", knobSize: 90)
-                        .padding(.leading, 36)
+                                label: "OUTPUT", knobSize: 65)
                     Spacer()
                     LabeledKnob(param: parameterTree.global.mix,
-                                label: "MIX", knobSize: 90)
-                        .padding(.trailing, 36)
+                                label: "MIX", knobSize: 65)
                 }
-                .padding(.top, -16)
-                .padding(.bottom, 16)
+                .padding(.horizontal, 78)
+                .padding(.top, 6)
+                .padding(.bottom, 6)
 
                 // Footer
                 Text("T A Y L O R A U D I O")
@@ -287,6 +259,8 @@ struct VXAtomExtensionMainView: View {
                     .foregroundColor(Color.vxTextDim.opacity(0.55))
                     .tracking(3)
                     .padding(.bottom, 10)
+
+                Spacer()
             }
         }
         .frame(width: panelWidth, height: panelHeight)
@@ -338,16 +312,11 @@ struct VXAtomExtensionMainView: View {
 
                 Spacer()
 
-                // LED indicator (yellow = active, dim = bypassed)
-                Circle()
-                    .fill(bypassParam.boolValue
-                          ? Color(white: 0.25)
-                          : Color.vxYellow)
-                    .frame(width: 9, height: 9)
-                    .shadow(color: bypassParam.boolValue
-                            ? .clear
-                            : Color.vxYellow.opacity(0.95),
-                            radius: 6)
+                // Spacer to balance the MK-I badge on the left
+                Text("MK-I")
+                    .font(.system(size: 8, weight: .black, design: .monospaced))
+                    .foregroundColor(Color.clear)
+                    .tracking(1.5)
                     .padding(.trailing, 36)
             }
         }
@@ -356,23 +325,40 @@ struct VXAtomExtensionMainView: View {
     private var squeezeSection: some View {
         VStack(spacing: 0) {
             ZStack {
-                // Arc position labels around the knob
-                SqueezeArcLabels(knobRadius: 90)  // half of size=180
-                ParameterKnob(param: parameterTree.global.squeeze, size: 180)
+                // Travel-range arc (7 o'clock → 5 o'clock through 12 o'clock)
+                Path { path in
+                    path.addArc(
+                        center: CGPoint(x: 100, y: 100),
+                        radius: 93,
+                        startAngle: .degrees(135),
+                        endAngle: .degrees(45),
+                        clockwise: false
+                    )
+                }
+                .stroke(
+                    Color.black.opacity(0.72),
+                    style: StrokeStyle(lineWidth: 4.5, lineCap: .round)
+                )
+                .frame(width: 200, height: 200)
+
+                ParameterKnob(param: parameterTree.global.squeeze, size: 150)
+
+                // Min/max ratio labels at arc endpoints (7 o'clock / 5 o'clock)
+                Text("2:1")
+                    .font(.system(size: 13, weight: .semibold, design: .monospaced))
+                    .foregroundColor(.black.opacity(0.72))
+                    .offset(x: -78, y: 74)
+                Text("20:1")
+                    .font(.system(size: 13, weight: .semibold, design: .monospaced))
+                    .foregroundColor(.black.opacity(0.72))
+                    .offset(x: 78, y: 74)
             }
 
-            HStack(spacing: 8) {
-                Text("☢")
-                    .font(.system(size: 14))
-                    .foregroundColor(Color.vxYellow.opacity(0.70))
-                Text("SQUEEZE")
-                    .font(.system(size: 13, weight: .black, design: .monospaced))
-                    .foregroundColor(.vxTextLight)
-                    .tracking(3)
-                Text("☢")
-                    .font(.system(size: 14))
-                    .foregroundColor(Color.vxYellow.opacity(0.70))
-            }
+            Text("CONTAINMENT")
+                .font(.system(size: 16, weight: .black, design: .monospaced))
+                .foregroundColor(.vxTextLight)
+                .tracking(3)
+                .padding(.top, -10)
 
             Text("You sure?")
                 .font(.system(size: 8.5, weight: .regular, design: .monospaced))
@@ -383,6 +369,23 @@ struct VXAtomExtensionMainView: View {
     }
 
     // MARK: - Helpers
+
+    private var radioactiveLogo: some View {
+        Group {
+            if let path = extensionBundle.path(forResource: "radioactive", ofType: "png"),
+               let nsImage = NSImage(contentsOfFile: path) {
+                Image(nsImage: nsImage)
+                    .resizable()
+                    .scaledToFit()
+            } else {
+                Circle()
+                    .fill(Color.vxYellow.opacity(0.88))
+                    .overlay(Text("☢").font(.system(size: 32)))
+            }
+        }
+        .frame(width: 76, height: 76)
+        .shadow(color: .black.opacity(0.50), radius: 4, x: 0, y: 2)
+    }
 
     private var bypassParam: ObservableAUParameter {
         parameterTree.global.bypass
