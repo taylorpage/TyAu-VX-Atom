@@ -82,19 +82,24 @@ private struct VUMeter: View {
 
                     let t = ctx.resolve(
                         Text("\(db)")
-                            .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                            .font(.custom("Jackwrite-Bold", size: 14))
                             .foregroundStyle(isRed ? Color.vxRed : Color.black.opacity(0.85))
                     )
                     ctx.draw(t, at: CGPoint(x: x, y: labelY), anchor: .center)
                 }
 
                 // Needle — full height, red
+                let needleLineWidth: CGFloat = 2.5
+                // The background image border is wider than insetX, so park the resting needle
+                // inside the visible face. needleInset gives the minimum center-x of the needle.
+                let needleInset: CGFloat = insetX * 2   // 16pt — clear of the image border
                 let clampedGR = CGFloat(min(max(gainReductionDB, 0), 40))
-                let needleX = clampedGR / 40.0 * usableW + insetX
+                let rawNeedleX = clampedGR / 40.0 * usableW + insetX
+                let needleX = max(needleInset, min(size.width - needleInset, rawNeedleX))
                 var needle = Path()
                 needle.move(to: CGPoint(x: needleX, y: 10))
                 needle.addLine(to: CGPoint(x: needleX, y: size.height - 10))
-                ctx.stroke(needle, with: .color(.vxRed), lineWidth: 2.5)
+                ctx.stroke(needle, with: .color(.vxRed), lineWidth: needleLineWidth)
 
             }
             .background {
@@ -149,10 +154,10 @@ private struct LabeledKnob: View {
     let knobSize: CGFloat
 
     var body: some View {
-        VStack(spacing: 5) {
+        VStack(spacing: 10) {
             ParameterKnob(param: param, size: knobSize)
             Text(label)
-                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                .font(.custom("Jackwrite-Bold", size: 12))
                 .foregroundColor(.vxTextLight)
                 .tracking(1.5)
         }
@@ -161,7 +166,7 @@ private struct LabeledKnob: View {
 
 // MARK: - SQUEEZE Arc Labels
 
-private struct SqueezeArcLabels: View {
+private struct CompressArcLabels: View {
     let knobRadius: CGFloat  // visual knob radius (knobSize / 2)
 
     // Angles follow clock convention: -135 = 7 o'clock (min), +135 = 5 o'clock (max)
@@ -180,7 +185,7 @@ private struct SqueezeArcLabels: View {
                 let screenRad = (item.angle - 90.0) * .pi / 180.0
                 let r = knobRadius + 28.0
                 Text(item.text)
-                    .font(.system(size: 7.5, weight: .semibold, design: .monospaced))
+                    .font(.custom("Jackwrite-Bold", size: 7.5))
                     .foregroundColor(.vxTextDim)
                     .multilineTextAlignment(.center)
                     .tracking(0.5)
@@ -223,11 +228,10 @@ struct VXAtomExtensionMainView: View {
                 .padding(.horizontal, 38)
                 .padding(.bottom, 8)
 
-                Spacer(minLength: 0).frame(maxHeight: 28)
-
                 // SQUEEZE knob (large, center character)
-                squeezeSection
-                    .padding(.bottom, 2)
+                compressSection
+                    .padding(.top, 28)
+                    .padding(.bottom, 28)
 
                 // SPEED | LOGO | GATE row — equal thirds across the panel
                 HStack(spacing: 0) {
@@ -294,7 +298,7 @@ struct VXAtomExtensionMainView: View {
             HStack(alignment: .center, spacing: 0) {
                 // Left badge
                 Text("MK-I")
-                    .font(.system(size: 8, weight: .black, design: .monospaced))
+                    .font(.custom("Jackwrite-Bold", size: 8))
                     .foregroundColor(Color.vxTextDim.opacity(0.65))
                     .tracking(1.5)
                     .padding(.leading, 36)
@@ -303,7 +307,7 @@ struct VXAtomExtensionMainView: View {
 
                 // Main title
                 Text("VX-ATOM")
-                    .font(.system(size: 22, weight: .black, design: .monospaced))
+                    .font(.custom("Jackwrite-Bold", size: 22))
                     .foregroundColor(.vxTextLight)
                     .tracking(5)
                     .shadow(color: .black.opacity(0.55), radius: 1, x: 1, y: 1)
@@ -312,7 +316,7 @@ struct VXAtomExtensionMainView: View {
 
                 // Spacer to balance the MK-I badge on the left
                 Text("MK-I")
-                    .font(.system(size: 8, weight: .black, design: .monospaced))
+                    .font(.custom("Jackwrite-Bold", size: 8))
                     .foregroundColor(Color.clear)
                     .tracking(1.5)
                     .padding(.trailing, 36)
@@ -320,7 +324,7 @@ struct VXAtomExtensionMainView: View {
         }
     }
 
-    private var squeezeSection: some View {
+    private var compressSection: some View {
         VStack(spacing: 0) {
             ZStack {
                 // Travel-range arc (7 o'clock → 5 o'clock through 12 o'clock)
@@ -339,21 +343,21 @@ struct VXAtomExtensionMainView: View {
                 )
                 .frame(width: 200, height: 200)
 
-                ParameterKnob(param: parameterTree.global.squeeze, size: 150)
+                ParameterKnob(param: parameterTree.global.compress, size: 150)
 
                 // Min/max ratio labels at arc endpoints (7 o'clock / 5 o'clock)
-                Text("2:1")
-                    .font(.system(size: 13, weight: .semibold, design: .monospaced))
+                Text("4:1")
+                    .font(.custom("Jackwrite-Bold", size: 13))
                     .foregroundColor(.black.opacity(0.72))
                     .offset(x: -78, y: 74)
-                Text("20:1")
-                    .font(.system(size: 13, weight: .semibold, design: .monospaced))
+                Text("200:1")
+                    .font(.custom("Jackwrite-Bold", size: 13))
                     .foregroundColor(.black.opacity(0.72))
                     .offset(x: 78, y: 74)
             }
 
-            Text("CONTAINMENT")
-                .font(.system(size: 16, weight: .black, design: .monospaced))
+            Text("COMPRESS")
+                .font(.custom("Jackwrite-Bold", size: 20))
                 .foregroundColor(.vxTextLight)
                 .tracking(3)
                 .padding(.top, -10)

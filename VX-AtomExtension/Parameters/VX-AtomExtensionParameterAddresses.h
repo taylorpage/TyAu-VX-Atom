@@ -10,7 +10,7 @@
 #include <AudioToolbox/AUParameters.h>
 
 typedef NS_ENUM(AUParameterAddress, VXAtomExtensionParameterAddress) {
-    squeeze    = 0,   // Main compression intensity (threshold + ratio + saturation)
+    compress   = 0,   // Main compression intensity (threshold + ratio + saturation)
     speed      = 1,   // Envelope character: 0=slow optical, 10=fast FET
     gate       = 2,   // Noise gate threshold (0=off, 10=aggressive)
     outputGain = 3,   // Output trim (-12 to +12 dB)

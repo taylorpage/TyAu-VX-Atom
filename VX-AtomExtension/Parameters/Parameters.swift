@@ -11,9 +11,9 @@ import AudioToolbox
 let VXAtomExtensionParameterSpecs = ParameterTreeSpec {
     ParameterGroupSpec(identifier: "global", name: "Global") {
         ParameterSpec(
-            address: .squeeze,
-            identifier: "squeeze",
-            name: "Squeeze",
+            address: .compress,
+            identifier: "compress",
+            name: "Compress",
             units: .generic,
             valueRange: 0.0...10.0,
             defaultValue: 5.0

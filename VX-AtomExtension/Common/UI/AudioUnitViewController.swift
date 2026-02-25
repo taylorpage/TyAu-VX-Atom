@@ -7,6 +7,7 @@
 
 import Combine
 import CoreAudioKit
+import CoreText
 import os
 import SwiftUI
 
@@ -53,7 +54,13 @@ public class AudioUnitViewController: AUViewController, AUAudioUnitFactory {
 
     public override func viewDidLoad() {
         super.viewDidLoad()
-        
+
+        // Register bundled fonts before the SwiftUI view is built
+        if let fontURL = Bundle(for: AudioUnitViewController.self)
+            .url(forResource: "JackwriteBold", withExtension: "ttf") {
+            CTFontManagerRegisterFontsForURL(fontURL as CFURL, .process, nil)
+        }
+
         // Accessing the `audioUnit` parameter prompts the AU to be created via createAudioUnit(with:)
         guard let audioUnit = self.audioUnit else {
             return

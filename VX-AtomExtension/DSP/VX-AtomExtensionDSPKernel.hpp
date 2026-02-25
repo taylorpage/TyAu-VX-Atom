@@ -74,8 +74,8 @@ public:
 
     void setParameter(AUParameterAddress address, AUValue value) {
         switch (address) {
-            case VXAtomExtensionParameterAddress::squeeze:
-                mSqueeze = std::max(0.0f, std::min(10.0f, value));
+            case VXAtomExtensionParameterAddress::compress:
+                mCompress = std::max(0.0f, std::min(10.0f, value));
                 break;
             case VXAtomExtensionParameterAddress::speed:
                 mSpeed = std::max(0.0f, std::min(10.0f, value));
@@ -99,7 +99,7 @@ public:
 
     AUValue getParameter(AUParameterAddress address) {
         switch (address) {
-            case VXAtomExtensionParameterAddress::squeeze:    return mSqueeze;
+            case VXAtomExtensionParameterAddress::compress:    return mCompress;
             case VXAtomExtensionParameterAddress::speed:      return mSpeed;
             case VXAtomExtensionParameterAddress::gate:       return mGate;
             case VXAtomExtensionParameterAddress::outputGain: return mOutputGainDB;
@@ -123,7 +123,20 @@ public:
     // Written on the render thread, read on the main/UI thread.
     // A float read/write is practically safe for a meter display (worst case: one stale frame).
     // Do NOT use std::atomic here — atomic operations are not real-time safe.
-    float getGainReductionDB() const {
+    //
+    // When the host stops calling the render block (transport stopped), mRenderGeneration stops
+    // advancing. Each UI poll that sees no advancement applies a release-style decay so the needle
+    // returns to rest rather than freezing at the last reading.
+    float getGainReductionDB() {
+        const uint64_t gen = mRenderGeneration;
+        if (gen == mLastUIGeneration && mMeterSmoothed > 0.0f) {
+            // Render thread has been idle since our last read — decay toward zero.
+            // ~0.87 per poll ≈ 200 ms time-constant at 30 fps.
+            mMeterSmoothed *= 0.87f;
+            if (mMeterSmoothed < 0.001f) mMeterSmoothed = 0.0f;
+            mGainReductionDB = mMeterSmoothed;
+        }
+        mLastUIGeneration = gen;
         return mGainReductionDB;
     }
 
@@ -131,6 +144,7 @@ public:
 
     void process(std::span<float const*> inputBuffers, std::span<float *> outputBuffers, AUEventSampleTime bufferStartTime, AUAudioFrameCount frameCount) {
         assert(inputBuffers.size() == outputBuffers.size());
+        ++mRenderGeneration;  // Signals the UI thread that the render block is still being called
 
         if (mBypassed) {
             for (UInt32 ch = 0; ch < inputBuffers.size(); ++ch) {
@@ -143,17 +157,17 @@ public:
         // Pre-compute squeeze-dependent values once per buffer (not per sample)
         // Piecewise mapping: 0-8 hits hard from the start;
         // 8-10 extends into nuclear territory (200:1 / -60 dB threshold).
-        const float squeezeNorm = mSqueeze / 10.0f;
+        const float compressNorm = mCompress / 10.0f;
         float thresholdDB, ratio, kneeDB;
-        if (squeezeNorm <= 0.8f) {
+        if (compressNorm <= 0.8f) {
             // Normal zone (SQUEEZE 0-8): aggressive from the start, solid at ~30% of knob
-            thresholdDB = lerp(-12.0f, -45.0f, squeezeNorm);
-            ratio       = lerp(4.0f,   25.0f,  squeezeNorm);
-            kneeDB      = lerp(4.0f,    0.0f,  squeezeNorm);
+            thresholdDB = lerp(-12.0f, -45.0f, compressNorm);
+            ratio       = lerp(4.0f,   25.0f,  compressNorm);
+            kneeDB      = lerp(4.0f,    0.0f,  compressNorm);
         } else {
             // Nuclear zone (SQUEEZE 8-10): extreme compression / hard limiting territory
-            // Breakpoint values at squeezeNorm=0.8: threshold=-38.4dB, ratio=20.8:1, knee=0.8dB
-            const float t = (squeezeNorm - 0.8f) / 0.2f;
+            // Breakpoint values at compressNorm=0.8: threshold=-38.4dB, ratio=20.8:1, knee=0.8dB
+            const float t = (compressNorm - 0.8f) / 0.2f;
             thresholdDB = lerp(-38.4f, -60.0f,  t);
             ratio       = lerp(20.8f,  200.0f,  t);
             kneeDB      = lerp(0.8f,    0.0f,   t);
@@ -165,15 +179,15 @@ public:
         // Own threshold range (much higher than Stage 1's nuclear range), own ratio (heavy but not extreme),
         // and a fixed narrow-ish knee. Combined with the different time constants above, this creates
         // real stacked-compressor interaction rather than math-doubling the same settings.
-        const float threshold2DB = lerp(-10.0f, -25.0f, squeezeNorm);
-        const float ratio2       = lerp(4.0f,    8.0f,  squeezeNorm);
+        const float threshold2DB = lerp(-10.0f, -25.0f, compressNorm);
+        const float ratio2       = lerp(4.0f,    8.0f,  compressNorm);
         const float knee2        = 3.0f;
         const float autoMakeup2  = -threshold2DB * (1.0f - 1.0f / ratio2) * 0.5f;
 
         // Stage 3: ceiling limiter — "pressed against the wall" brick-wall character.
         // Threshold scales with SQUEEZE so it engages harder as you push.
         // No auto makeup: the ceiling clamps and stays down — that squash is the sound.
-        const float threshold3DB = lerp(-2.0f, -8.0f, squeezeNorm);
+        const float threshold3DB = lerp(-2.0f, -8.0f, compressNorm);
         const float ratio3       = 80.0f;
         const float knee3        = 0.5f;
 
@@ -370,7 +384,7 @@ private:
     int    mChannelCount  = 2;
 
     // Parameters (written from main thread via AU event system, read from render thread)
-    float  mSqueeze       = 5.0f;
+    float  mCompress       = 5.0f;
     float  mSpeed         = 3.0f;
     float  mGate          = 0.0f;
     float  mOutputGainDB  = 0.0f;
@@ -399,8 +413,10 @@ private:
     float  mGateReleaseCoeff = 0.0f;
 
     // Gain reduction metering (written on render thread, read on UI thread — float read is tolerable)
-    float  mGainReductionDB = 0.0f;
-    float  mMeterSmoothed   = 0.0f;  // ballistic-smoothed value exposed to VU needle
+    float    mGainReductionDB  = 0.0f;
+    float    mMeterSmoothed    = 0.0f;  // ballistic-smoothed value exposed to VU needle
+    uint64_t mRenderGeneration = 0;     // incremented each render call; UI checks for idle
+    uint64_t mLastUIGeneration = 0;     // last generation seen by getGainReductionDB (UI thread only)
 
     AUAudioFrameCount mMaxFramesToRender = 1024;
 };
