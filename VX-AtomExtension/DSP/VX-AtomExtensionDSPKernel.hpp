@@ -102,12 +102,6 @@ public:
         mMaxFramesToRender = maxFrames;
     }
 
-    // MARK: - Musical Context
-
-    void setMusicalContextBlock(AUHostMusicalContextBlock contextBlock) {
-        mMusicalContextBlock = contextBlock;
-    }
-
     // MARK: - Gain Reduction Metering
     // Written on the render thread, read on the main/UI thread.
     // A float read/write is practically safe for a meter display (worst case: one stale frame).
@@ -266,8 +260,6 @@ private:
     // MARK: - Member Variables
 
     static constexpr int kMaxChannels = 2;
-
-    AUHostMusicalContextBlock mMusicalContextBlock;
 
     double mSampleRate    = 44100.0;
     int    mChannelCount  = 2;

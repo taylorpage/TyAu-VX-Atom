@@ -84,7 +84,6 @@ public class VXAtomExtensionAudioUnit: AUAudioUnit, @unchecked Sendable
 
         inputBus.allocateRenderResources(self.maximumFramesToRender);
 
-		kernel.setMusicalContextBlock(self.musicalContextBlock)
         kernel.initialize(Int32(inputChannelCount), Int32(outputChannelCount), outputBus!.format.sampleRate)
 
         processHelper?.setChannelCount(inputChannelCount, outputChannelCount)
@@ -93,9 +92,8 @@ public class VXAtomExtensionAudioUnit: AUAudioUnit, @unchecked Sendable
     // Deallocate resources allocated in allocateRenderResourcesAndReturnError:
     // Subclassers should call the superclass implementation.
     public override func deallocateRenderResources() {
-        // Deallocate your resources.
         kernel.deInitialize()
-
+        inputBus.deallocateRenderResources()
         super.deallocateRenderResources()
     }
 
