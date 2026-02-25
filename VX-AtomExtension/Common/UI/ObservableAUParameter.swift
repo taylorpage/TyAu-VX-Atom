@@ -156,8 +156,10 @@ final class ObservableAUParameter: ObservableAUParameterNode {
     }
 
     deinit {
-        if let token = observerToken {
-            parameter?.removeParameterObserver(token)
+        MainActor.assumeIsolated {
+            if let token = observerToken {
+                parameter?.removeParameterObserver(token)
+            }
         }
     }
 
