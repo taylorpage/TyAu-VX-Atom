@@ -228,15 +228,15 @@ struct VXAtomExtensionMainView: View {
                 squeezeSection
                     .padding(.bottom, 2)
 
-                // SPEED | LOGO | TONE row — equal thirds across the panel
+                // SPEED | LOGO | GATE row — equal thirds across the panel
                 HStack(spacing: 0) {
                     LabeledKnob(param: parameterTree.global.speed,
                                 label: "SPEED", knobSize: 65)
                         .frame(maxWidth: .infinity)
                     radioactiveLogo
                         .frame(maxWidth: .infinity)
-                    LabeledKnob(param: parameterTree.global.tone,
-                                label: "TONE", knobSize: 65)
+                    LabeledKnob(param: parameterTree.global.gate,
+                                label: "GATE", knobSize: 65)
                         .frame(maxWidth: .infinity)
                 }
                 .padding(.horizontal, 20)

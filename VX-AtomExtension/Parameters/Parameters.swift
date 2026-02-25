@@ -27,12 +27,12 @@ let VXAtomExtensionParameterSpecs = ParameterTreeSpec {
             defaultValue: 3.0
         )
         ParameterSpec(
-            address: .tone,
-            identifier: "tone",
-            name: "Tone",
+            address: .gate,
+            identifier: "gate",
+            name: "Gate",
             units: .generic,
             valueRange: 0.0...10.0,
-            defaultValue: 4.0
+            defaultValue: 0.0
         )
         ParameterSpec(
             address: .outputGain,

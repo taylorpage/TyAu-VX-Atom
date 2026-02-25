@@ -21,8 +21,9 @@
  As a non-ObjC class, this is safe to use from render thread.
 
  Signal chain (per sample, per channel):
-   Input → Env1 → GC1 → VCA1 → Env2 → GC2 → VCA2 → Env3 → GC3 (Limiter) → VCA3 → Saturation → Parallel Mix → Output Trim
+   Input → Gate → Env1 → GC1 → VCA1 → Env2 → GC2 → VCA2 → Env3 → GC3 (Limiter) → VCA3 → Parallel Mix → Output Trim
 
+   Gate:    Pre-compression noise gate. Threshold 0=-80dB (off) to 10=-30dB. Fixed 2ms open / 100ms close.
    Stage 1: Heavy VCA-style compressor. Threshold -12 to -60 dB, ratio 4:1 to 200:1, fast attack.
    Stage 2: Independent aggressive compressor. Threshold -10 to -25 dB, ratio 4:1 to 8:1, 2x slower attack.
    Stage 3: Ceiling limiter. Threshold -2 to -8 dB, ratio 80:1, very fast. No makeup — ceiling stays down.
@@ -40,7 +41,12 @@ public:
             mEnvelope[ch]  = 0.0f;
             mEnvelope2[ch] = 0.0f;
             mEnvelope3[ch] = 0.0f;
+            mGateEnvelope[ch] = 0.0f;
+            mGateGain[ch]     = 1.0f;
         }
+        // Gate: fixed time constants (not parameter-dependent)
+        mGateAttackCoeff  = computeIIRCoeff(0.002, mSampleRate);  // 2ms open
+        mGateReleaseCoeff = computeIIRCoeff(0.100, mSampleRate);  // 100ms close
         updateCoefficients();
     }
 
@@ -49,6 +55,8 @@ public:
             mEnvelope[ch]  = 0.0f;
             mEnvelope2[ch] = 0.0f;
             mEnvelope3[ch] = 0.0f;
+            mGateEnvelope[ch] = 0.0f;
+            mGateGain[ch]     = 1.0f;
         }
     }
 
@@ -73,8 +81,8 @@ public:
                 mSpeed = std::max(0.0f, std::min(10.0f, value));
                 updateCoefficients();
                 break;
-            case VXAtomExtensionParameterAddress::tone:
-                mTone = std::max(0.0f, std::min(10.0f, value));
+            case VXAtomExtensionParameterAddress::gate:
+                mGate = std::max(0.0f, std::min(10.0f, value));
                 break;
             case VXAtomExtensionParameterAddress::outputGain:
                 mOutputGainDB = std::max(-24.0f, std::min(24.0f, value));
@@ -93,7 +101,7 @@ public:
         switch (address) {
             case VXAtomExtensionParameterAddress::squeeze:    return mSqueeze;
             case VXAtomExtensionParameterAddress::speed:      return mSpeed;
-            case VXAtomExtensionParameterAddress::tone:       return mTone;
+            case VXAtomExtensionParameterAddress::gate:       return mGate;
             case VXAtomExtensionParameterAddress::outputGain: return mOutputGainDB;
             case VXAtomExtensionParameterAddress::mix:        return mMix;
             case VXAtomExtensionParameterAddress::bypass:     return mBypassed ? 1.0f : 0.0f;
@@ -169,8 +177,9 @@ public:
         const float ratio3       = 80.0f;
         const float knee3        = 0.5f;
 
-        // Saturation drive from TONE (0=linear, 10=heavy harmonic coloring)
-        const float drive         = 1.0f + (mTone / 10.0f) * 2.5f;
+        // Gate threshold: GATE=0 → -80 dB (effectively off), GATE=10 → -30 dB
+        const float gateThresholdDB = lerp(-80.0f, -30.0f, mGate / 10.0f);
+        const float gateThreshold   = dBToLinear(gateThresholdDB);
 
         float sumGainReductionDB = 0.0f;
 
@@ -180,8 +189,25 @@ public:
             for (UInt32 i = 0; i < frameCount; ++i) {
                 const float inputSample = inputBuffers[ch][i];
 
+                // --- Noise Gate (pre-compression) ---
+                // Envelope follower detects signal level; gain smoothly opens/closes.
+                const float absIn = std::fabs(inputSample);
+                if (absIn > mGateEnvelope[envIdx]) {
+                    mGateEnvelope[envIdx] += mGateAttackCoeff * (absIn - mGateEnvelope[envIdx]);
+                } else {
+                    mGateEnvelope[envIdx] += mGateReleaseCoeff * (absIn - mGateEnvelope[envIdx]);
+                }
+                mGateEnvelope[envIdx] = std::max(mGateEnvelope[envIdx], 1e-10f);
+                const float targetGateGain = (mGateEnvelope[envIdx] >= gateThreshold) ? 1.0f : 0.0f;
+                if (targetGateGain > mGateGain[envIdx]) {
+                    mGateGain[envIdx] += mGateAttackCoeff * (targetGateGain - mGateGain[envIdx]);
+                } else {
+                    mGateGain[envIdx] += mGateReleaseCoeff * (targetGateGain - mGateGain[envIdx]);
+                }
+                const float gatedSample = inputSample * mGateGain[envIdx];
+
                 // --- Envelope Follower (peak detector, first-order IIR leaky integrator) ---
-                const float rectified = std::fabs(inputSample);
+                const float rectified = std::fabs(gatedSample);
                 if (rectified > mEnvelope[envIdx]) {
                     mEnvelope[envIdx] += mAttackCoeff * (rectified - mEnvelope[envIdx]);
                 } else {
@@ -199,7 +225,7 @@ public:
                 const float gainLinear    = dBToLinear(totalGainDB);
 
                 // --- Apply compression (Stage 1) ---
-                const float compressed = inputSample * gainLinear;
+                const float compressed = gatedSample * gainLinear;
 
                 // --- Stage 2: second envelope follower on post-stage-1 signal ---
                 // Stage 2's detector sees the already-compressed signal, so it reacts to stage 1's
@@ -217,7 +243,6 @@ public:
                 const float compressed2 = compressed * dBToLinear(grDB2 + autoMakeup2);
 
                 // --- Stage 3: ceiling limiter on post-stage-2 signal ---
-                // Fast envelope catches peaks before saturation hits them.
                 // No makeup gain — the ceiling stays down, that's the "pressed against the wall" feel.
                 const float rectified3 = std::fabs(compressed2);
                 if (rectified3 > mEnvelope3[envIdx]) {
@@ -231,12 +256,8 @@ public:
                 const float grDB3       = computeGainReduction(levelDB3, threshold3DB, ratio3, knee3);
                 const float compressed3 = compressed2 * dBToLinear(grDB3);
 
-                // --- Saturation (soft tanh waveshaper for harmonic character) ---
-                // Drive in, divide back out to approximate level preservation
-                const float saturated = softTanh(compressed3 * drive) / drive;
-
-                // --- Parallel Mix (dry = pre-compression signal, for transient preservation) ---
-                const float output = lerp(inputSample, saturated, mMix) * mOutputGainLinear;
+                // --- Parallel Mix (dry = gated pre-compression signal, for transient preservation) ---
+                const float output = lerp(gatedSample, compressed3, mMix) * mOutputGainLinear;
 
                 outputBuffers[ch][i] = output;
 
@@ -280,13 +301,6 @@ private:
 
     static float lerp(float a, float b, float t) {
         return a + t * (b - a);
-    }
-
-    // Soft tanh approximation: x*(27 + x²) / (27 + 9*x²)
-    // Cheap, numerically stable, bounded to ≈ [-1, 1]
-    static float softTanh(float x) {
-        const float x2 = x * x;
-        return x * (27.0f + x2) / (27.0f + 9.0f * x2);
     }
 
     // Piecewise gain computer in log domain.
@@ -346,13 +360,15 @@ private:
     // Parameters (written from main thread via AU event system, read from render thread)
     float  mSqueeze       = 5.0f;
     float  mSpeed         = 3.0f;
-    float  mTone          = 4.0f;
+    float  mGate          = 0.0f;
     float  mOutputGainDB  = 0.0f;
     float  mOutputGainLinear = 1.0f;
     float  mMix           = 1.0f;
     bool   mBypassed      = false;
 
-    // Envelope follower state (per channel) — stages 1, 2, and 3
+    // Envelope follower state (per channel) — gate + stages 1, 2, and 3
+    float  mGateEnvelope[kMaxChannels] = { 0.0f, 0.0f };
+    float  mGateGain[kMaxChannels]     = { 1.0f, 1.0f };
     float  mEnvelope[kMaxChannels]  = { 0.0f, 0.0f };
     float  mEnvelope2[kMaxChannels] = { 0.0f, 0.0f };
     float  mEnvelope3[kMaxChannels] = { 0.0f, 0.0f };
@@ -366,6 +382,9 @@ private:
     // Stage 3: ceiling limiter — always fast, tight range
     float  mAttackCoeff3  = 0.0f;
     float  mReleaseCoeff3 = 0.0f;
+    // Gate: fixed time constants, computed once in initialize()
+    float  mGateAttackCoeff  = 0.0f;
+    float  mGateReleaseCoeff = 0.0f;
 
     // Gain reduction metering (written on render thread, read on UI thread — float read is tolerable)
     float  mGainReductionDB = 0.0f;

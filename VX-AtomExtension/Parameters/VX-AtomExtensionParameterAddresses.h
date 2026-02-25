@@ -12,7 +12,7 @@
 typedef NS_ENUM(AUParameterAddress, VXAtomExtensionParameterAddress) {
     squeeze    = 0,   // Main compression intensity (threshold + ratio + saturation)
     speed      = 1,   // Envelope character: 0=slow optical, 10=fast FET
-    tone       = 2,   // Harmonic saturation amount
+    gate       = 2,   // Noise gate threshold (0=off, 10=aggressive)
     outputGain = 3,   // Output trim (-12 to +12 dB)
     mix        = 4,   // Parallel compression blend (0=dry, 1=full wet)
     bypass     = 5

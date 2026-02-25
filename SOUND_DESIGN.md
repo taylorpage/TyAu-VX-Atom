@@ -44,13 +44,15 @@ Puig's processing chains typically blend a heavily compressed signal back with t
 
 In VX-ATOM this is the **MIX** knob. At `MIX=1.0` you are fully compressed — maximum character but transients are softened. At `MIX=0.3–0.5` you get the Puig blend: the dense, thick compressed signal underneath the natural transient attack of the dry signal. The result is compression you can *feel* without it sounding like compression.
 
-### Harmonic Enrichment Through Saturation
+### Noise Gate for a Clean Noise Floor
 
-Optical and tube-based compressors (which Puig favors — the Fairchild 670 is his most famous tool) add harmonic distortion as a byproduct of how they work. The optical element and tube gain stage are inherently nonlinear. As the gain reduction changes, the waveshape of the signal changes with it, generating harmonics that weren't in the original signal.
+Heavy compression has an unavoidable side effect: gain reduction between phrases brings up the noise floor. Room noise, mic self-noise, and electrical hum that were inaudible at natural levels become clearly audible when the compressor is working hard — particularly in the silence between vocal phrases.
 
-These harmonics are not noise. Even-order harmonics (2nd, 4th) are musically consonant — they sit at the octave and the fifth, reinforcing the fundamental and adding warmth and body. Odd-order harmonics (3rd, 5th) are more complex and create edge, aggression, and presence. Tube circuits tend toward even-order. Transistor/FET circuits tend toward odd-order mixed with even. The result in both cases is a signal that occupies more sonic space — it sounds *bigger* in the mix than the level meter suggests.
+The **GATE** knob addresses this directly. It places a noise gate *before* the compression stages, operating on the raw signal before any gain reduction has been applied. This is the correct placement: the gate sees the natural signal level and makes a clean open/close decision based on whether audio is actually present. By gating pre-compression, the threshold that the user sets corresponds intuitively to the natural signal level — not the amplified post-compression noise.
 
-In VX-ATOM, the **TONE** knob is the explicit version of what optical and tube compressors do implicitly. The soft-tanh waveshaper generates both even and odd harmonics in amounts that scale with the drive setting. At low TONE values the character is clean. As TONE increases, the signal gets richer, thicker, and more forward. At high TONE settings the saturation is heavy and intentional — aggressive, not subtle.
+The gate uses fixed time constants tuned for vocal and instrument use: 2 ms opening time (fast enough to not cut the front of a phrase) and 100 ms closing time (fast enough to feel responsive, slow enough to avoid chopping natural tails). These are not user-adjustable because for this use case the right values are not a matter of preference — a gate that closes too fast chatters, and a gate that closes too slowly lets noise through.
+
+At GATE=0 the threshold sits at -80 dB, which is below the noise floor of any practical signal path, so the gate is effectively off. As GATE increases toward 10, the threshold rises to -30 dB — assertive enough to cleanly gate most vocal and instrument sources between phrases. The right setting for any session depends on the noise floor of the source; as a rule, set it just above the noise floor so that silence is truly silent but the signal opens cleanly with no clipping of the attack.
 
 ### Slow Attack as a Feature
 
@@ -100,20 +102,6 @@ The SPEED knob is continuous because the truth is that most great-sounding compr
 
 ---
 
-## TONE: Why Saturation Lives After the Compressor
-
-A common question about saturation in a compressor is: why apply it after gain reduction? Why not before?
-
-The answer is about what saturation at each point in the chain does to the sound.
-
-Saturation *before* compression changes the signal that the compressor sees. Drive into a saturator and the peaks get rounded off, making the compressor respond differently — softer in some ways, but the saturation artifacts are then also being compressed. The result is often a particular kind of dense thickness, but it can also lose definition.
-
-Saturation *after* compression operates on a signal that has already had its dynamics managed. The gain reduction has already happened. The compressed signal is then pushed through a nonlinear element that colors it without fighting with the dynamics. The saturation is added to the result, not mixed into the process. This tends to produce cleaner harmonic enrichment — the saturation adds character to the compressed signal rather than blurring the boundary between the two effects.
-
-In VX-ATOM specifically, the saturation sits after all three compression stages — after Stage 1, Stage 2, and the Stage 3 ceiling limiter have all acted on the signal. This means the signal entering the waveshaper has already been dynamically compressed, further pressed, and ceiling-clamped. It is a very consistent, dense signal. The TONE waveshaper operates on material that is already thoroughly managed, generating harmonics that are proportional and musical rather than erratic. At high SQUEEZE settings this produces a thick, saturated density — the saturation and the three-stage compression reinforce each other's character rather than competing.
-
-The soft-tanh waveshaper specifically was chosen over harder clippers or asymmetric saturators because it generates harmonics smoothly across both even and odd orders without a hard transition into clipping. There is no point where the saturation suddenly breaks or becomes obviously distorted — it grades continuously from clean to colored to thick. This matches the behavior of tape saturation and the subtle nonlinearity of the output transformer in vintage compressor designs, which is a large part of what makes those compressors sound "warm" rather than "distorted."
-
 ---
 
 ## The Nuclear Aesthetic: Why It Matters
@@ -136,11 +124,11 @@ These are not presets. They are jumping-off points that reflect the intended use
 ```
 SQUEEZE:  6.0  (RADIO zone — firm threshold, assertive ratio)
 SPEED:    4.0  (slightly optical — lets consonants breathe)
-TONE:     4.0  (mild harmonic enrichment, not heavy)
+GATE:     3.0  (light gating — catches room noise between phrases)
 OUTPUT:   0.0  (adjust to match dry level)
 MIX:      0.7  (mostly wet with some parallel transient preservation)
 ```
-The compressor works hard but the 4.0 SPEED keeps some natural attack character. TONE at 4 adds presence and thickness. MIX at 0.7 keeps the compressed density while letting transients punch through naturally.
+The compressor works hard but the 4.0 SPEED keeps some natural attack character. GATE at 3 quietly closes the noise floor between phrases without being audible on the natural vocal tail. MIX at 0.7 keeps the compressed density while letting transients punch through naturally.
 
 ---
 
@@ -148,11 +136,11 @@ The compressor works hard but the 4.0 SPEED keeps some natural attack character.
 ```
 SQUEEZE:  4.0  (THHKY zone — threshold in the body of the signal)
 SPEED:    1.5  (near optical — slow attack, long release)
-TONE:     6.0  (more saturation for warmth and richness)
+GATE:     2.0  (gentle — only closes on true silence)
 OUTPUT:   0.0
 MIX:      1.0  (fully wet — let the optical character dominate)
 ```
-Slow attack and long release means the compressor is smoothing out the average level rather than catching peaks. The higher TONE compensates by adding harmonic richness and keeping the vocal present. Good for intimate, warm vocal sounds where aggression is not the goal.
+Slow attack and long release means the compressor is smoothing out the average level rather than catching peaks. GATE at 2 keeps the noise floor clean without affecting the natural decay of the performance. Good for intimate, warm vocal sounds where aggression is not the goal.
 
 ---
 
@@ -160,11 +148,11 @@ Slow attack and long release means the compressor is smoothing out the average l
 ```
 SQUEEZE:  7.5  (toward TOO MUCH — deep threshold, high ratio)
 SPEED:    9.0  (near FET — fast attack and release)
-TONE:     5.0  (moderate saturation for drum color)
+GATE:     0.0  (off — drums need the full tail; gating a bus creates artifacts)
 OUTPUT:  -1.0  (trim back slightly — auto makeup may be generous)
 MIX:      0.4  (New York compression — dry attack, dense sustain)
 ```
-Fast SPEED catches transients aggressively, adding punch. High SQUEEZE flattens dynamics. MIX at 0.4 lets the snare snap and kick thud through the dry path while the compressed signal adds thickness and sustain. This is the most obvious parallel compression application.
+Fast SPEED catches transients aggressively, adding punch. High SQUEEZE flattens dynamics. MIX at 0.4 lets the snare snap and kick thud through the dry path while the compressed signal adds thickness and sustain. GATE is left off on a drum bus — the natural room decay is part of the sound, and gating a mixed bus creates unnatural artifacts.
 
 ---
 
@@ -172,11 +160,11 @@ Fast SPEED catches transients aggressively, adding punch. High SQUEEZE flattens 
 ```
 SQUEEZE: 10.0  (TOO MUCH — all three stages at full engagement)
 SPEED:    5.0  (mid-speed — enough attack to stay punchy, not so fast it just sounds crushed)
-TONE:     6.0  (heavy harmonic enrichment — the saturation locks in with the compression)
+GATE:     5.0  (moderate — heavy compression raises the noise floor; gate is essential here)
 OUTPUT:  -3.0  (the three-stage chain can hit hard; trim back to match dry level)
 MIX:      1.0  (fully wet — the point is the pressed sound, not the transients)
 ```
-All three compression stages are working simultaneously. Stage 1 crushes. Stage 2 presses. Stage 3's ceiling sits at -8 dB and holds everything under it. The result is a vocal or instrument sound that feels physically dense — not simply quieter with the peaks removed, but as though the sound has been pressed into a smaller space and pushed forward. Works best on material that needs to compete in a dense mix without riding faders. Not appropriate for acoustic or classical contexts. Very appropriate for electronic, hip-hop, or heavily produced pop sources.
+All three compression stages are working simultaneously. Stage 1 crushes. Stage 2 presses. Stage 3's ceiling sits at -8 dB and holds everything under it. At SQUEEZE=10, the auto makeup gain is working hard and the noise floor between phrases will be clearly audible without gating — GATE at 5 keeps it clean. The result is a vocal or instrument sound that feels physically dense — not simply quieter with the peaks removed, but as though the sound has been pressed into a smaller space and pushed forward. Works best on material that needs to compete in a dense mix without riding faders.
 
 ---
 
@@ -184,11 +172,11 @@ All three compression stages are working simultaneously. Stage 1 crushes. Stage 
 ```
 SQUEEZE:  3.0  (LIGHT-to-THHKY — gentle engagement)
 SPEED:    2.0  (optical-leaning — program-dependent feel)
-TONE:     2.0  (subtle coloring only)
+GATE:     0.0  (off — at gentle SQUEEZE settings the noise floor is not a concern)
 OUTPUT:   0.0
 MIX:      0.85 (mostly wet with a touch of dry)
 ```
-Light settings across the board. The compressor is barely working, just cohering the mix elements slightly. The low TONE adds a very subtle harmonic sheen. Good for a last-stage mix bus treatment where you want the compressor to be felt rather than heard.
+Light settings across the board. The compressor is barely working, just cohering the mix elements slightly. At gentle SQUEEZE the noise floor issue is minimal, so the gate can stay off. Good for a last-stage mix bus treatment where you want the compressor to be felt rather than heard.
 
 ---
 
@@ -214,7 +202,7 @@ These are not bugs, but they are choices that have trade-offs and could reasonab
 
 **The SPEED interpolation is linear.** The perceptual difference between 0–2 ms of attack is much larger than the difference between 20–22 ms. A logarithmic or exponential interpolation across the attack range might give more useful resolution at fast settings.
 
-**The saturation is post-compression only.** An optional pre-compression saturation path (a "drive" stage before the VCA) would create a different tonal character and is how many vintage hardware designs work. Could be a mode or a second TONE-style knob.
+**The gate has no hold stage.** A standard noise gate has three phases: attack (open), hold (stay open for a fixed time after the signal drops below threshold), and release (close). VX-ATOM's gate goes directly from open to release, which works well for vocal material but can cause the gate to chatter on signals that hover near the threshold. A hold stage of 50–100 ms would make it more robust.
 
 **Auto makeup gain is an approximation.** Stages 1 and 2 both use the formula `−threshold × (1 − 1/ratio) × 0.5`, which is conservative. At extreme SQUEEZE settings the actual gain reduction can exceed the auto makeup, resulting in net attenuation. Stage 3 (the ceiling limiter) applies no auto makeup intentionally — the level staying down under the ceiling is part of the sound. The OUTPUT knob is the intended correction for overall level offset; a more accurate auto-gain algorithm measuring actual average gain reduction over time would make SQUEEZE sweeps more level-consistent.
 
@@ -222,4 +210,4 @@ These are not bugs, but they are choices that have trade-offs and could reasonab
 
 ---
 
-*Last updated: February 2026 — updated to reflect three-stage compression architecture (Stage 1 aggressor, Stage 2 presser, Stage 3 ceiling limiter)*
+*Last updated: February 2026 — replaced TONE saturation knob with GATE noise gate; added pre-compression gate DSP with fixed 2ms open / 100ms close*
