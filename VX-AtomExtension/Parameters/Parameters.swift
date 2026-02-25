@@ -39,7 +39,7 @@ let VXAtomExtensionParameterSpecs = ParameterTreeSpec {
             identifier: "outputGain",
             name: "Output",
             units: .decibels,
-            valueRange: -12.0...12.0,
+            valueRange: -24.0...24.0,
             defaultValue: 0.0
         )
         ParameterSpec(
