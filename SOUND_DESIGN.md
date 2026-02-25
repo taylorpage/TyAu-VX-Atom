@@ -26,6 +26,18 @@ What Puig's processing is known for is a quality that is hard to quantify but im
 
 Several specific things account for this quality, and each one is reflected in VX-ATOM's architecture.
 
+### Three-Stage Compression Architecture
+
+The most significant structural decision in VX-ATOM is that compression happens in three serial stages, each with a genuinely different personality. This is not the same as setting a ratio high — it is what separates the sound of a heavily worked-over mix through multiple hardware units from the sound of one compressor turned up.
+
+**Stage 1 — The Aggressor:** A VCA-style compressor with a threshold that descends from -12 dB to -60 dB as SQUEEZE increases. Ratio ranges from 4:1 to 200:1 with a fast attack derived from SPEED. This stage does the heavy dynamic work.
+
+**Stage 2 — The Presser:** An independent compressor running on the post-Stage-1 signal, but with its own threshold range (-10 to -25 dB), its own ratio (4:1 to 8:1), and time constants that run 2× slower on attack and 1.5× longer on release than Stage 1. Because it has different settings, it responds to different parts of the already-compressed signal — particularly the pumping artifacts and dynamic variation that Stage 1 leaves behind. The two stages interact at different timescales, which is what creates the characteristic "stacked compressor" feel: compressed, but alive.
+
+**Stage 3 — The Ceiling:** A fast brick-wall limiter (80:1, ~0.5 dB knee) sitting between Stage 2 and the saturation stage. Its threshold scales from -2 dB at zero SQUEEZE to -8 dB at maximum, with intentionally no auto makeup gain. The signal hits the ceiling and stays there — that is the sound. The ceiling pressing down against the signal's attempts to escape is a large part of the "pressed against the wall" quality that high SQUEEZE settings produce.
+
+The three stages are not trying to do the same thing at increasing intensity. They are three different compressors with three different jobs, running in series. This is why stacking two instances of the same compressor in code doesn't produce the same result — mathematical duplication produces a harder version of one compressor. Three different personalities at three different timescales produces a different compression *texture*.
+
 ### Parallel Compression Architecture
 
 Puig's processing chains typically blend a heavily compressed signal back with the dry signal rather than replacing it. This is the "New York compression" technique, though Puig takes it further than most. The heavily compressed signal provides density, thickness, and sustain. The dry signal provides attack transients, definition, and life. The blend is what makes the result feel both controlled and dynamic at the same time.
@@ -64,7 +76,7 @@ SQUEEZE links all three together in a way that is always sonically coherent:
 
 - At low values (LIGHT range), the threshold is high, the ratio is gentle, and the knee is wide. The compressor barely engages. What engagement there is, is smooth and almost imperceptible. This is glue compression.
 - In the middle (THHKY to RADIO range), the threshold drops into the body of most signals, the ratio is assertive, and the knee is starting to firm up. This is where the character lives for most use cases.
-- At maximum (TOO MUCH), the threshold is at -30 dB (nearly everything is above it), the ratio is 12:1 (nearly limiting), and the knee is 0 dB (hard snap). Combined with TONE, this is wall-of-sound territory. It is not subtle. The name is honest.
+- At maximum (TOO MUCH), Stage 1's threshold is at -60 dB with a 200:1 ratio and a hard knee — everything above the noise floor is being compressed, and it is being compressed hard. Stage 2 simultaneously locks down with an 8:1 ratio, and Stage 3's ceiling drops to -8 dB. Combined with TONE, this is wall-of-sound territory. It is not subtle. The name is honest.
 
 The auto makeup gain built into SQUEEZE means you can sweep it without the output level changing dramatically, making it easy to audition the character at different intensities during a mix.
 
@@ -98,7 +110,7 @@ Saturation *before* compression changes the signal that the compressor sees. Dri
 
 Saturation *after* compression operates on a signal that has already had its dynamics managed. The gain reduction has already happened. The compressed signal is then pushed through a nonlinear element that colors it without fighting with the dynamics. The saturation is added to the result, not mixed into the process. This tends to produce cleaner harmonic enrichment — the saturation adds character to the compressed signal rather than blurring the boundary between the two effects.
 
-More practically: when SQUEEZE is high and the compressor is hitting hard, the compressed signal coming out of the VCA stage is already dynamically dense and limited in its peak excursions. The TONE waveshaper then has a consistent signal to work with. The harmonics it generates are proportional and musical. If the saturation were before the compressor, high SQUEEZE values would cause the pre-saturated signal to compress in complex ways that are harder to control.
+In VX-ATOM specifically, the saturation sits after all three compression stages — after Stage 1, Stage 2, and the Stage 3 ceiling limiter have all acted on the signal. This means the signal entering the waveshaper has already been dynamically compressed, further pressed, and ceiling-clamped. It is a very consistent, dense signal. The TONE waveshaper operates on material that is already thoroughly managed, generating harmonics that are proportional and musical rather than erratic. At high SQUEEZE settings this produces a thick, saturated density — the saturation and the three-stage compression reinforce each other's character rather than competing.
 
 The soft-tanh waveshaper specifically was chosen over harder clippers or asymmetric saturators because it generates harmonics smoothly across both even and odd orders without a hard transition into clipping. There is no point where the saturation suddenly breaks or becomes obviously distorted — it grades continuously from clean to colored to thick. This matches the behavior of tape saturation and the subtle nonlinearity of the output transformer in vintage compressor designs, which is a large part of what makes those compressors sound "warm" rather than "distorted."
 
@@ -156,6 +168,18 @@ Fast SPEED catches transients aggressively, adding punch. High SQUEEZE flattens 
 
 ---
 
+### Maximum Press — Nuclear Vocal or Instrument Character
+```
+SQUEEZE: 10.0  (TOO MUCH — all three stages at full engagement)
+SPEED:    5.0  (mid-speed — enough attack to stay punchy, not so fast it just sounds crushed)
+TONE:     6.0  (heavy harmonic enrichment — the saturation locks in with the compression)
+OUTPUT:  -3.0  (the three-stage chain can hit hard; trim back to match dry level)
+MIX:      1.0  (fully wet — the point is the pressed sound, not the transients)
+```
+All three compression stages are working simultaneously. Stage 1 crushes. Stage 2 presses. Stage 3's ceiling sits at -8 dB and holds everything under it. The result is a vocal or instrument sound that feels physically dense — not simply quieter with the peaks removed, but as though the sound has been pressed into a smaller space and pushed forward. Works best on material that needs to compete in a dense mix without riding faders. Not appropriate for acoustic or classical contexts. Very appropriate for electronic, hip-hop, or heavily produced pop sources.
+
+---
+
 ### Bus Glue — Transparent but Present
 ```
 SQUEEZE:  3.0  (LIGHT-to-THHKY — gentle engagement)
@@ -192,10 +216,10 @@ These are not bugs, but they are choices that have trade-offs and could reasonab
 
 **The saturation is post-compression only.** An optional pre-compression saturation path (a "drive" stage before the VCA) would create a different tonal character and is how many vintage hardware designs work. Could be a mode or a second TONE-style knob.
 
-**Auto makeup gain is an approximation.** The formula `−threshold × (1 − 1/ratio) × 0.5` is conservative. At extreme SQUEEZE settings the actual gain reduction can exceed the auto makeup, resulting in net attenuation. The OUTPUT knob is the intended correction for this, but a more accurate auto-gain algorithm (measuring the actual average gain reduction over time and adapting to it) would make SQUEEZE sweeps more level-consistent.
+**Auto makeup gain is an approximation.** Stages 1 and 2 both use the formula `−threshold × (1 − 1/ratio) × 0.5`, which is conservative. At extreme SQUEEZE settings the actual gain reduction can exceed the auto makeup, resulting in net attenuation. Stage 3 (the ceiling limiter) applies no auto makeup intentionally — the level staying down under the ceiling is part of the sound. The OUTPUT knob is the intended correction for overall level offset; a more accurate auto-gain algorithm measuring actual average gain reduction over time would make SQUEEZE sweeps more level-consistent.
 
 **The VU meter shows average, not peak.** A secondary peak indicator (LED-style at the top of the meter range) would make it easier to see brief transient gain reduction that the ballistic needle misses. Not necessary for the plugin's intended use, but useful for educational purposes.
 
 ---
 
-*Last updated: February 2026*
+*Last updated: February 2026 — updated to reflect three-stage compression architecture (Stage 1 aggressor, Stage 2 presser, Stage 3 ceiling limiter)*
