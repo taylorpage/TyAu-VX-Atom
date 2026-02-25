@@ -268,9 +268,20 @@ public:
             }
         }
 
-        // Update meter state (average across buffer)
+        // Update meter with VU-style ballistics.
+        // Raw per-buffer average would peg instantly at high SQUEEZE settings.
+        // Attack ~150ms (needle rises quickly) / release ~300ms (needle falls slowly, like real VU).
         if (frameCount > 0 && !inputBuffers.empty()) {
-            mGainReductionDB = sumGainReductionDB / static_cast<float>(frameCount);
+            const float instantaneous  = sumGainReductionDB / static_cast<float>(frameCount);
+            const float bufferDuration = static_cast<float>(frameCount) / static_cast<float>(mSampleRate);
+            const float attackCoeff    = 1.0f - std::exp(-bufferDuration / 0.150f);
+            const float releaseCoeff   = 1.0f - std::exp(-bufferDuration / 0.300f);
+            if (instantaneous > mMeterSmoothed) {
+                mMeterSmoothed += attackCoeff  * (instantaneous - mMeterSmoothed);
+            } else {
+                mMeterSmoothed += releaseCoeff * (instantaneous - mMeterSmoothed);
+            }
+            mGainReductionDB = mMeterSmoothed;
         }
     }
 
@@ -388,6 +399,7 @@ private:
 
     // Gain reduction metering (written on render thread, read on UI thread — float read is tolerable)
     float  mGainReductionDB = 0.0f;
+    float  mMeterSmoothed   = 0.0f;  // ballistic-smoothed value exposed to VU needle
 
     AUAudioFrameCount mMaxFramesToRender = 1024;
 };

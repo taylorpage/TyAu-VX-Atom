@@ -43,13 +43,14 @@ private struct VUMeter: View {
                 let labelY = size.height / 2   // labels float in the vertical center
 
                 // 7 major ticks with 1 minor tick centered exactly between each pair
-                let majorDBs = [1, 4, 7, 10, 13, 16, 19]
+                // Scale: 0–40 dB — three-stage compression routinely stacks past 20 dB
+                let majorDBs = [5, 10, 15, 20, 25, 30, 35]
 
                 // Minor ticks — computed as midpoints so they are perfectly centered
                 for idx in 0..<majorDBs.count - 1 {
                     let midDB = CGFloat(majorDBs[idx] + majorDBs[idx + 1]) / 2.0
-                    let x = midDB / 20.0 * usableW + insetX
-                    let isRed = midDB >= 10
+                    let x = midDB / 40.0 * usableW + insetX
+                    let isRed = midDB >= 20
                     let color: GraphicsContext.Shading = .color(
                         isRed ? Color.vxRed.opacity(0.45) : .black.opacity(0.28)
                     )
@@ -65,8 +66,8 @@ private struct VUMeter: View {
 
                 // Major ticks + labels
                 for db in majorDBs {
-                    let x = CGFloat(db) / 20.0 * usableW + insetX
-                    let isRed = db >= 10
+                    let x = CGFloat(db) / 40.0 * usableW + insetX
+                    let isRed = db >= 20
                     let color: GraphicsContext.Shading = .color(
                         isRed ? Color.vxRed.opacity(0.85) : .black.opacity(0.70)
                     )
@@ -88,8 +89,8 @@ private struct VUMeter: View {
                 }
 
                 // Needle — full height, red
-                let clampedGR = CGFloat(min(max(gainReductionDB, 0), 20))
-                let needleX = clampedGR / 20.0 * usableW + insetX
+                let clampedGR = CGFloat(min(max(gainReductionDB, 0), 40))
+                let needleX = clampedGR / 40.0 * usableW + insetX
                 var needle = Path()
                 needle.move(to: CGPoint(x: needleX, y: 10))
                 needle.addLine(to: CGPoint(x: needleX, y: size.height - 10))
