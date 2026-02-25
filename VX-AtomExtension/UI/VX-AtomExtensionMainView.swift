@@ -18,7 +18,7 @@ private extension Color {
     static let vxTealDark   = Color(red: 0.176, green: 0.420, blue: 0.353)
     static let vxTealMid    = Color(red: 0.290, green: 0.545, blue: 0.478)
     static let vxYellow     = Color(red: 1.000, green: 0.850, blue: 0.000)
-    static let vxRed        = Color(red: 0.820, green: 0.118, blue: 0.118)
+    static let vxRed        = Color(red: 0.640, green: 0.048, blue: 0.048)
     static let vxIvory      = Color(red: 0.945, green: 0.929, blue: 0.855)
     static let vxTextLight  = Color(red: 0.878, green: 0.867, blue: 0.800)
     static let vxTextDim    = Color(red: 0.580, green: 0.615, blue: 0.545)
@@ -31,34 +31,16 @@ private struct VUMeter: View {
 
     var body: some View {
         ZStack {
-            // Dark outer frame casing
-            RoundedRectangle(cornerRadius: 5)
-                .fill(
-                    LinearGradient(
-                        colors: [Color(white: 0.18), Color(white: 0.07)],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
-
             // Meter face
             Canvas { ctx, size in
                 // Rails flush with face edges; ticks span full width
                 let insetX: CGFloat = 16   // left/right margin reserved for dots
                 let usableW = size.width - insetX * 2
-                let topRailY:    CGFloat = 1
-                let bottomRailY: CGFloat = size.height - 1
-                let majorH: CGFloat = 10   // tick length inward from each rail
+                let topRailY:    CGFloat = 2
+                let bottomRailY: CGFloat = size.height - 2
+                let majorH: CGFloat = 11   // tick length inward from each rail
                 let minorH: CGFloat = 6
                 let labelY = size.height / 2   // labels float in the vertical center
-
-                // Top and bottom horizontal rail lines — full width
-                for railY in [topRailY, bottomRailY] {
-                    var rail = Path()
-                    rail.move(to: CGPoint(x: 0, y: railY))
-                    rail.addLine(to: CGPoint(x: size.width, y: railY))
-                    ctx.stroke(rail, with: .color(.black.opacity(0.40)), lineWidth: 0.8)
-                }
 
                 // Indicator dots — vertically centered, in the left/right margins
                 let dotSize: CGFloat = 8
@@ -75,12 +57,17 @@ private struct VUMeter: View {
                     with: .color(Color.vxYellow.opacity(heavyGR ? 0.95 : 0.30))
                 )
 
-                // Minor ticks on both rails (every 1 dB, skip major positions)
-                for i in stride(from: 0, through: 20, by: 1) {
-                    guard i % 5 != 0 else { continue }
-                    let x = CGFloat(i) / 20.0 * usableW + insetX
-                    let isRed = i >= 10
-                    let color: GraphicsContext.Shading = .color(isRed ? Color.vxRed.opacity(0.45) : .black.opacity(0.28))
+                // 7 major ticks with 1 minor tick centered exactly between each pair
+                let majorDBs = [1, 4, 7, 10, 13, 16, 19]
+
+                // Minor ticks — computed as midpoints so they are perfectly centered
+                for idx in 0..<majorDBs.count - 1 {
+                    let midDB = CGFloat(majorDBs[idx] + majorDBs[idx + 1]) / 2.0
+                    let x = midDB / 20.0 * usableW + insetX
+                    let isRed = midDB >= 10
+                    let color: GraphicsContext.Shading = .color(
+                        isRed ? Color.vxRed.opacity(0.45) : .black.opacity(0.28)
+                    )
                     var top = Path()
                     top.move(to: CGPoint(x: x, y: topRailY))
                     top.addLine(to: CGPoint(x: x, y: topRailY + minorH))
@@ -91,12 +78,13 @@ private struct VUMeter: View {
                     ctx.stroke(bot, with: color, lineWidth: 0.8)
                 }
 
-                // Major ticks on both rails + centered labels
-                for (dbInt, label) in [(0,"0"),(5,"5"),(10,"10"),(15,"15"),(20,"20")] {
-                    let x = CGFloat(dbInt) / 20.0 * usableW + insetX
-                    let isRed = dbInt >= 10
-                    let color: GraphicsContext.Shading = .color(isRed ? Color.vxRed.opacity(0.85) : .black.opacity(0.70))
-
+                // Major ticks + labels
+                for db in majorDBs {
+                    let x = CGFloat(db) / 20.0 * usableW + insetX
+                    let isRed = db >= 10
+                    let color: GraphicsContext.Shading = .color(
+                        isRed ? Color.vxRed.opacity(0.85) : .black.opacity(0.70)
+                    )
                     var top = Path()
                     top.move(to: CGPoint(x: x, y: topRailY))
                     top.addLine(to: CGPoint(x: x, y: topRailY + majorH))
@@ -107,7 +95,7 @@ private struct VUMeter: View {
                     ctx.stroke(bot, with: color, lineWidth: 1.5)
 
                     let t = ctx.resolve(
-                        Text(label)
+                        Text("\(db)")
                             .font(.system(size: 11, weight: .semibold, design: .monospaced))
                             .foregroundStyle(isRed ? Color.vxRed : Color.black.opacity(0.85))
                     )
@@ -128,7 +116,7 @@ private struct VUMeter: View {
                    let nsImage = NSImage(contentsOfFile: path) {
                     Image(nsImage: nsImage)
                         .resizable()
-                        .scaleEffect(4.0)
+                        .scaledToFill()
                 } else {
                     Color(red: 0.948, green: 0.930, blue: 0.852)
                 }
@@ -136,17 +124,6 @@ private struct VUMeter: View {
             .padding(.horizontal, 7)
             .padding(.vertical, 5)
             .clipShape(RoundedRectangle(cornerRadius: 2))
-
-            // Frame bevel edge
-            RoundedRectangle(cornerRadius: 5)
-                .strokeBorder(
-                    LinearGradient(
-                        colors: [Color(white: 0.42), Color(white: 0.05)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 1.5
-                )
         }
         .frame(height: 80)
         .shadow(color: .black.opacity(0.65), radius: 5, x: 0, y: 3)
