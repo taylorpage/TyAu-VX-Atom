@@ -340,7 +340,7 @@ struct VXAtomExtensionMainView: View {
                 }
                 .stroke(
                     Color.black.opacity(0.72),
-                    style: StrokeStyle(lineWidth: 4.5, lineCap: .round)
+                    style: StrokeStyle(lineWidth: 5.0, lineCap: .round)
                 )
                 .frame(width: 200, height: 200)
 
