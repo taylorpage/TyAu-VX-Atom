@@ -277,10 +277,11 @@ struct VXAtomExtensionMainView: View {
                 Image(nsImage: nsImage)
                     .resizable()
                     .scaledToFill()
+                    .brightness(0.08)
             }
             // Edge vignette
             RadialGradient(
-                colors: [Color.clear, Color.black.opacity(0.28)],
+                colors: [Color.clear, Color.black.opacity(0.12)],
                 center: .center,
                 startRadius: 90,
                 endRadius: 220
